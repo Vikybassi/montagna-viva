@@ -66,7 +66,29 @@ export function setupPlay(c: PlayCtx) {
     if (phone.isOpen || !ui.busy) phone.toggle();
   };
 
+  /**
+   * Al rientro nel gioco: se c'era qualcosa in corso, lo si dice (e il prossimo passo), e si sceglie se continuare o
+   * metterlo in pausa. Così l'obiettivo in alto non sembra arrivato dal nulla.
+   */
+  async function welcomeBack() {
+    const { tracked, trackedKind } = engine.pick(state.followErrand, racing());
+    if (!tracked || trackedKind === "emergenza" || !state.packed) return;
+    const next = QuestEngine.current(tracked);
+    const i = await ui.say(
+      "Il tuo telefono",
+      `<b>Bentornata in Val Masino!</b> Stavi ${trackedKind === "commissione" ? "facendo una commissione" : "seguendo una missione"}: <b>${tracked.title}</b>.${next ? ` Prossimo passo: ${next.text}.` : ""}`,
+      ["Continuo da qui", "La metto in pausa"],
+    );
+    if (i !== 1) return;
+    if (trackedKind === "missione") state.active = null;
+    else state.errand = null;
+    save();
+    routes.resetMissionRoute();
+    ui.toast(trackedKind === "missione" ? "<b>Missione in pausa.</b> La riprendi parlando con Marta, a San Martino." : "<b>Commissione in pausa.</b> La riprendi parlando di nuovo con chi te l'ha chiesta.");
+  }
+
   return {
+    welcomeBack,
     /** solo per le prove automatiche (?debug) */
     debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, interacts, pickHut: routes.pickHut, guide: () => routes.guide },
     get runToggle() {

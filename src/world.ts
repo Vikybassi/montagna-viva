@@ -238,6 +238,66 @@ export function buildTerrainMesh(t: Terrain, cover: Cover) {
 
 export const GLACIER_COLOR = C.glacier;
 
+/**
+ * Oltre il bordo della mappa: le montagne continuano (inventate, sfumate nella foschia), così ai confini non si vede il
+ * vuoto ma altre creste, come in Valtellina. Quattro fasce intorno al rettangolo: all'attacco hanno la quota vera del
+ * bordo, poi salgono verso creste di 2000–3200 m.
+ */
+export function buildSkirt(t: Terrain) {
+  const W = t.width, D = t.depth, step = t.cell * 2;
+  const outs = [0, 25, 60, 110, 180, 270, 390, 540, 730, 970, 1270, 1650, 2100, 2700, 3400];
+  const P: number[] = [], Cl: number[] = [], I: number[] = [];
+  const tmp = new THREE.Color();
+  // creste inventate: onde lunghe che si incrociano, sempre uguali (niente caso)
+  const ridge = (x: number, z: number) => {
+    const a = Math.sin(x * 0.0021 + Math.sin(z * 0.0013) * 2) * Math.cos(z * 0.0017 - Math.sin(x * 0.0009) * 1.6);
+    const b = Math.sin(x * 0.0063 + z * 0.0041) * 0.35;
+    return 2350 + (a + b) * 700; // metri
+  };
+  const strip = (edge: (u: number) => [number, number], out: [number, number], len: number) => {
+    const n = Math.ceil(len / step) + Math.ceil(2 * outs[outs.length - 1] / step);
+    const u0 = -outs[outs.length - 1];
+    const base = P.length / 3;
+    for (let i = 0; i <= n; i++) {
+      const u = u0 + i * step;
+      const [ex, ez] = edge(Math.max(0, Math.min(len, u)));
+      const sx = edge(u)[0] - ex, sz = edge(u)[1] - ez; // oltre gli angoli si prosegue di lato
+      const h0 = t.heightAt(ex, ez) / S;
+      for (const d of outs) {
+        const x = ex + sx + out[0] * d, z = ez + sz + out[1] * d;
+        const k = THREE.MathUtils.smoothstep(d, 60, 1600);
+        const m = h0 * (1 - k) + ridge(x, z) * k;
+        P.push(x, m * S, z);
+        tmp.copy(C.meadow).lerp(C.meadowHigh, THREE.MathUtils.smoothstep(m, 1500, 2200));
+        tmp.lerp(C.rockDark, THREE.MathUtils.smoothstep(m, 2100, 2500)).lerp(C.rock, THREE.MathUtils.smoothstep(m, 2500, 2800));
+        tmp.lerp(C.snow, THREE.MathUtils.smoothstep(m, 2900, 3150));
+        Cl.push(tmp.r, tmp.g, tmp.b);
+      }
+    }
+    const R = outs.length;
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j < R - 1; j++) {
+        const a = base + i * R + j, b = base + (i + 1) * R + j;
+        I.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+  };
+  strip((u) => [u, 0], [0, -1], W); // nord
+  strip((u) => [u, D], [0, 1], W); // sud
+  strip((u) => [0, u], [-1, 0], D); // ovest
+  strip((u) => [W, u], [1, 0], D); // est
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(Cl, 3));
+  g.setIndex(I);
+  g.computeVertexNormals();
+  const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0, side: THREE.DoubleSide }));
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/** quanto sei lontana dal bordo della mappa (unità di gioco) */
+export const edgeDistance = (t: Terrain, x: number, z: number) => Math.min(x, z, t.width - x, t.depth - z);
+
 /** Nastro che segue il terreno lungo una linea (sentieri, torrenti). */
 function ribbon(t: Terrain, lines: Pt[][], width: number, lift: number, color: THREE.Color, every = 4) {
   const P: number[] = [], I: number[] = [];

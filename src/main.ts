@@ -14,7 +14,7 @@ import { PHRASES as ALL_PHRASES, randomName } from "./content";
 import { Quality } from "./quality";
 import { loadSettings, saveSettings } from "./settings";
 import * as ui from "./ui";
-import { Cover, S, buildLakes, buildPlaces, buildTerrainMesh, buildTrails, buildTrees, loadWorld, waterUniforms } from "./world";
+import { Cover, S, buildLakes, buildPlaces, buildSkirt, buildTerrainMesh, buildTrails, buildTrees, edgeDistance, loadWorld, waterUniforms } from "./world";
 
 /**
  * Montagna viva — primo passo: la Val Masino vera da attraversare a piedi, dal paese di San Martino ai rifugi,
@@ -53,6 +53,8 @@ const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.3, 12
 
 const cover = new Cover(T.meta, data);
 const terrainMesh = buildTerrainMesh(T, cover);
+// oltre il bordo della mappa: altre creste nella foschia, non il vuoto
+scene.add(buildSkirt(T));
 scene.add(terrainMesh);
 scene.add(buildTrails(T, data));
 scene.add(buildLakes(T));
@@ -65,6 +67,8 @@ const sky = new Sky(scene);
 // chi sei: nome e colore della giacca (ricordati nel browser)
 const me = loadMe();
 const hiker = new Hiker({ jacket: me.jacket });
+hiker.worldMargin = 20; // un po' prima del bordo: oltre, il terreno non c'è più
+let edgeTold = false;
 // case, rifugi, bivacchi, campanili e tronchi: non si attraversano (né a piedi né con la telecamera)
 const obstacles = new Obstacles();
 for (const s of [...places.solids, ...trees.solids]) obstacles.add(s);
@@ -672,8 +676,16 @@ function frame() {
   sky.update(hours, p, fog, play.weather.storm, play.weather.flash);
   waterUniforms.uTime.value = now;
   waterUniforms.uSky.value.copy(sky.horizon);
-  fog.near = 900 * (1 - 0.7 * play.weather.storm);
-  fog.far = 5200 * (1 - 0.6 * play.weather.storm);
+  // verso il bordo della mappa sale la foschia: le creste inventate oltre il confine restano lontane e sfumate
+  const edgeK = 1 - THREE.MathUtils.smoothstep(edgeDistance(T, p.x, p.z), 120, 900);
+  fog.near = 900 * (1 - 0.7 * play.weather.storm) * (1 - 0.55 * edgeK);
+  fog.far = 5200 * (1 - 0.6 * play.weather.storm) * (1 - 0.6 * edgeK);
+  // al confine: si spiega perché non si va oltre (una volta ogni volta che ci arrivi)
+  const atEdge = edgeDistance(T, p.x, p.z) < 45;
+  if (atEdge && !edgeTold && started) {
+    edgeTold = true;
+    ui.toast("<b>Oltre queste creste continua la Valtellina.</b> Nel gioco, per ora, la valle finisce qui: torna verso i rifugi.");
+  } else if (!atEdge && edgeDistance(T, p.x, p.z) > 120) edgeTold = false;
   sunMap.update(sky.lightDir);
   lamp.intensity = play.hasLamp() ? THREE.MathUtils.smoothstep(sky.night, 0.15, 0.6) * 260 : 0;
   play.update(dt);
@@ -749,6 +761,8 @@ startBtn.addEventListener("click", () => {
   saveMe(me);
   net.connect();
   started = true;
+  // se c'era qualcosa in corso: bentornata, ecco dov'eri rimasta (dopo un attimo, a gioco partito)
+  setTimeout(() => void play.welcomeBack(), 900);
   sound.start();
   document.body.classList.add("playing");
   intro.classList.add("gone");

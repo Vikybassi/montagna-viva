@@ -4,7 +4,7 @@ Le situazioni strane che il gioco deve reggere, ognuna con la prova che la contr
 `unit` = `npm test` (Vitest, `tests/unit/`), `e2e` = `npm run test:e2e` (Chrome, `tests/e2e/`).
 Quando si corregge un bug, si aggiunge qui la riga e la prova che lo tiene lontano.
 
-Stato al 3 ottobre 2026 (M1): **tutti verdi** — 51 prove unit, 8 prove e2e (anche in grafica software, come su GitHub).
+Stato al 3 ottobre 2026 (M1): **tutti verdi** — 51 prove unit, 9 prove e2e (anche in grafica software, come su GitHub).
 Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco fa pochi fotogrammi al secondo.
 
 ## Salvataggi
@@ -29,6 +29,8 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 11 | Niente in corso | Non segue niente (in alto: «Esplora la valle · parla con Marta») | unit `quests` |
 | 11b | Arrivano le nuvole nere e Marta chiama | L'obiettivo in alto diventa subito il riparo, prima che inizi a piovere | e2e `shelter` |
 | 11c | Commissione accettata o finita (Rosa col pane già nello zaino) | La persona risponde sempre: ricorda dove andare, o ringrazia | e2e `encounters` |
+| 11d | Si ricarica la pagina con una missione in corso | «Bentornata»: si dice quale e il prossimo passo; si sceglie se continuare o metterla in pausa | e2e `welcome` |
+| 11e | Ti avvicini a una persona | Si gira verso di te (anche chi para sui blocchi, quando non arrampichi) | e2e `welcome` |
 
 ## Tastiera
 
@@ -54,6 +56,7 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 24 | La telecamera dietro un muro, anche girandola di colpo | Si avvicina, non entra nella casa (nemmeno mentre scivola al suo posto) | unit `collide`, e2e `collide` |
 | 25 | Entrare dalla porta per ripararsi | La porta funziona (niente urti mentre entri o sei dentro) | e2e `shelter` |
 | 26 | Ritrovarsi dentro una casa (viaggio veloce, salto) | Si esce camminando, non si resta bloccati | e2e `collide` |
+| 26a | Al confine della mappa | Ci si ferma prima del bordo, con un avviso; oltre si vedono creste nella foschia, non il vuoto | e2e `welcome` |
 
 ## Arrampicata e foto
 

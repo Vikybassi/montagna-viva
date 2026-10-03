@@ -924,6 +924,11 @@ export class Climb {
 
   /** l'istruttore resta al suo posto; mentre sei in parete tiene la corda e la recupera (o la dà) */
   idle(dt: number) {
+    // chi fa sicura (o para) guarda la parete mentre arrampichi; quando arrivi a piedi, si gira verso di te
+    const me = this.hiker.root.position, b = this.belayer.root.position;
+    const d = Math.hypot(me.x - b.x, me.z - b.z);
+    const want = this.active || d > 14 ? Math.atan2(-this.out.x, -this.out.z) : Math.atan2(me.x - b.x, me.z - b.z);
+    this.belayer.heading += Math.atan2(Math.sin(want - this.belayer.heading), Math.cos(want - this.belayer.heading)) * (1 - Math.exp(-4 * dt));
     this.belayer.update(dt, new THREE.Vector2(), false, this.t);
     if (this.active) this.belayer.belayPose(this.pulled);
   }

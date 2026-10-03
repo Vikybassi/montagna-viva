@@ -122,7 +122,8 @@ export function buildEncounters(c: EncounterCtx) {
       face(rosa.h);
       if (done("pane")) return void ui.say("Rosa, panettiera", "Giulio mi ha scritto che il pane è arrivato ancora croccante. Grazie! Quando ripassi di qui, una fetta di torta è tua.");
       if (state.carrying === "pane") {
-        // hai già il pane: Rosa ti ricorda dove portarlo
+        // hai già il pane: Rosa ti ricorda dove portarlo (e se l'avevi messa in pausa, la commissione riparte)
+        if (state.errand !== "pane") take("pane");
         await ui.say("Rosa, panettiera", "Il pane è nello zaino, ben avvolto. Giulio è al Rifugio Omio, sopra Bagni di Masino: segui l'indicazione in alto e la strada arancione. Salendo bevi, e non correre: il pane non scappa!");
         return;
       }
@@ -207,7 +208,17 @@ export function buildEncounters(c: EncounterCtx) {
     },
     /** a ogni fotogramma: Luca che ti segue, il cappello che dondola */
     update(dt: number) {
-      for (const h of crowd) if (h !== luca.h) h.update(dt, still, false, t);
+      const me0 = hiker.root.position;
+      for (const h of crowd) {
+        if (h === luca.h && following) continue;
+        // chi è vicino si gira verso di te (piano, come una persona che ti vede arrivare)
+        const q = h.root.position, d = Math.hypot(me0.x - q.x, me0.z - q.z);
+        if (d < 14) {
+          const want = Math.atan2(me0.x - q.x, me0.z - q.z);
+          h.heading += Math.atan2(Math.sin(want - h.heading), Math.cos(want - h.heading)) * (1 - Math.exp(-4 * dt));
+        }
+        if (h !== luca.h) h.update(dt, still, false, t);
+      }
       if (hatMesh?.visible) hatMesh.children[0].rotation.y += dt * 1.5;
       const p = luca.h.root.position, me = hiker.root.position;
       if (following) {

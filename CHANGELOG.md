@@ -21,6 +21,11 @@ sola, muri veri, orologio che può saltare senza rompere niente.
 - Le persone rispondono sempre, anche a commissione accettata o finita (Rosa non resta più muta).
 - Telefono: nuova scheda **Foto** con l'album e il taccuino del naturalista; un tocco ingrandisce la foto.
 - Il telefonino nell'angolo è più grande.
+- Al rientro nel gioco: «Bentornata», con la missione o la commissione in corso e la scelta di continuare o metterla in
+  pausa.
+- Le persone si girano verso di te quando ti avvicini (anche Rosa, Giorgia, Tommaso, Luca e chi para sui blocchi).
+- Ai confini della mappa: niente più vuoto, ma creste nella foschia e un avviso.
+- 9 prove nel browser.
 
 **Dentro**
 
@@ -28,7 +33,7 @@ sola, muri veri, orologio che può saltare senza rompere niente.
 - Un motore unico delle missioni (`QuestEngine`): emergenza › corsa › quella che scegli di seguire.
 - Un gestore unico dei tasti a livelli (`src/input.ts`) e gli ostacoli solidi (`src/collide.ts`).
 - Salvataggi con versione, migrazioni, controllo dei campi, esporta/importa.
-- 51 prove veloci e 8 prove nel browser; i casi limite sono elencati in [tests/CASI.md](tests/CASI.md).
+- 51 prove veloci; i casi limite sono elencati in [tests/CASI.md](tests/CASI.md).
 
 ## 0.1.0 · M0, fondamenta (3 ottobre 2026)
 

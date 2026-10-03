@@ -165,6 +165,8 @@ export class Hiker {
 
   /** "pavimento" in più oltre al terreno (il Sasso Remenno: ci si cammina sopra e non lo si attraversa) */
   groundFn: ((x: number, z: number) => number | null) | null = null;
+  /** quanto vicino al bordo della mappa si può arrivare (unità di gioco) */
+  worldMargin = 4;
   /** gli ostacoli solidi (case, tronchi): riceve dove vorresti andare e restituisce dove puoi stare */
   collide: ((x: number, z: number, y: number) => { x: number; z: number; stuck: boolean }) | null = null;
   groundAt(t: Terrain, x: number, z: number) {
@@ -275,7 +277,7 @@ export class Hiker {
       else (nx = c.x), (nz = c.z);
     }
     const wall = this.groundAt(t, nx, nz) - p.y > 1.2 && !this.airborne; // una parete davanti (es. il masso): non si entra
-    if (t.inside(nx, nz, 4) && !wall) {
+    if (t.inside(nx, nz, this.worldMargin) && !wall) {
       p.x = nx;
       p.z = nz;
     }
