@@ -138,6 +138,23 @@ motore.
 **Fatto quando**: una persona che non conosce il gioco arriva al finale senza aiuti in circa 2 ore e sa dire il
 messaggio con parole sue.
 
+### M2b · Valtellina a tappe · 5–7 sessioni
+
+Decisa il 3 ottobre 2026 (vedi decisione 6). La Val Masino resta il cuore; si aggiungono altre valli vere, costruite
+con lo stesso sistema (terreno Copernicus, sentieri e rifugi OpenStreetMap), e un viaggio per andare da una all'altra.
+
+- Il caricatore delle valli: una valle alla volta (stesse prestazioni di oggi), i dati di ogni valle in una cartella,
+  salvataggio per valle (timbri, ometti, foto restano comuni).
+- **Valmalenco**: Chiesa, Rifugio Marinelli Bombardieri, il ghiacciaio del Fellaria (il ghiaccio che resta).
+- **Valfurva**: Santa Caterina, Rifugio Branca, il ghiacciaio dei Forni (la misura della fronte con Elena).
+- Il viaggio: una scena breve lungo il fondovalle (finestrino, tornanti, la mappa della Valtellina che si riempie),
+  con la corriera, il treno Colico–Sondrio–Tirano o la Panda 4x4 di nonna Ada.
+- Stazione di Morbegno per il prologo; Tirano e il trenino rosso del Bernina per l'epilogo.
+- Confini di ogni valle come oggi: creste nella foschia e un avviso.
+
+**Fatto quando**: si va dalla Val Masino alla Valmalenco e ritorno senza perdere niente, e ogni valle si carica in
+meno di 10 secondi su un portatile normale.
+
 ### M3 · UX e interfaccia · 3 sessioni
 
 - Nuova schermata iniziale: titolo grande sopra la valle, un solo pulsante, nome e giacca in un secondo momento.
@@ -228,3 +245,11 @@ Il multiplayer online è fuori dalla 1.0: il gioco in compagnia resta solo in lo
 3. **Multiplayer online**: tolto dalla 1.0, resta solo in locale; le sessioni passano a telefono e libretto (M6).
 4. **Inglese**: rimandato alla patch 1.1.
 5. **Audio**: solo suoni della valle durante il gioco; un'unica traccia musicale per prologo e pagina finale.
+6. **Valtellina a tappe** (3 ottobre 2026, dopo aver visto i confini della mappa): la Val Masino resta il cuore, si
+   aggiungono Valmalenco e Valfurva con un viaggio tra le valli (tappa M2b). Gli atti della storia si distribuiscono
+   sulle valli (bozza: prologo a Morbegno, atto 1 Val Masino, atto 2 Valmalenco col Fellaria, atto 3 Valfurva coi
+   Forni, epilogo a Tirano col trenino del Bernina); si rifinisce in M2. Una Valtellina unica e continua è scartata
+   per la 1.0: troppo pesante per portatili e telefoni.
+7. **Suoni registrati** (3 ottobre 2026): vento, torrenti, uccelli, passi, campanacci, animali, pioggia e tuoni
+   passano da sintetizzati a registrazioni vere a licenza libera (CC0 o equivalente), con l'elenco delle fonti nei
+   crediti. Si anticipa dalla M5.
