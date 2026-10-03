@@ -5,6 +5,7 @@ import { Hiker } from "./player";
 import { learn, save, state } from "./state";
 import * as ui from "./ui";
 import type { Terrain, WorldData } from "./world";
+import { LOOKS, type Look } from "./looks";
 
 /**
  * Il Sasso Remenno e la sua via d'arrampicata.
@@ -163,7 +164,7 @@ export type ClimbOpts = {
   /** verso dove guarda la parete della via (in piano) */
   out?: THREE.Vector3;
   /** chi fa sicura (o para): nome per il ritratto e colori */
-  partner?: { name: string; look: { jacket: string; hat: string; pack: string; hair: string } };
+  partner?: { name: string; look: Look };
   kinds?: Kind[];
   /** cosa ricordare quando arrivi in cima */
   onTop?: () => void;
@@ -372,7 +373,7 @@ export class Climb {
     // chi para sta vicino al materassino, con le mani pronte; chi fa sicura un po' più in là, con la corda
     this.base = this.withRope ? this.routeBase.clone().addScaledVector(this.out, 2.4).addScaledVector(this.right, -2.2) : this.routeBase.clone().addScaledVector(this.out, 1.8).addScaledVector(this.right, 1.4);
     this.base.y = t.heightAt(this.base.x, this.base.z);
-    const partner = opts.partner ?? { name: "Davide", look: { jacket: "#3a6f4e", hat: "#ffffff", pack: "#c2375a", hair: "#2a1f1a" } };
+    const partner = opts.partner ?? { name: "Davide", look: LOOKS.Davide };
     this.belayer = new Hiker(partner.look);
     ui.avatar(partner.name, partner.look);
     if (!this.withRope) {

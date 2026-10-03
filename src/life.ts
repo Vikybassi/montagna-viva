@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Hiker } from "./player";
 import { S, type Cover, type Terrain, type WorldData } from "./world";
+import { walkerLook } from "./looks";
 
 /**
  * La vita della valle: mucche brune agli alpeggi (con i campanacci), escursionisti che camminano sui sentieri e
@@ -205,10 +206,9 @@ export class Life {
       .filter((p) => p.len > 120 && p.d < 1600)
       .sort((a, b) => a.d - b.d)
       .slice(0, 40);
-    const jackets = ["#e07d3e", "#3b5a8a", "#5a6b3a", "#8a3b5a", "#2f6f8f", "#c9a440", "#6b4a8a"];
     for (let i = 0; i < 10 && cands.length; i++) {
       const c = cands.splice(Math.floor(this.rng() * cands.length), 1)[0];
-      const h = new Hiker({ jacket: jackets[i % jackets.length], hat: jackets[(i + 3) % jackets.length], pack: jackets[(i + 5) % jackets.length], hair: ["#3a2a20", "#8a5a3a", "#c9a440", "#b8b0a8"][i % 4] });
+      const h = new Hiker(walkerLook(i));
       const start = Math.floor(this.rng() * (c.pts.length - 1));
       h.root.position.copy(c.pts[start]);
       this.group.add(h.root);

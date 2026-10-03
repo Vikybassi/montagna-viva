@@ -48,11 +48,11 @@ export class Hiker {
   }
 
   /** i colori si possono cambiare: così la stessa figura fa anche la guida, i custodi e la glaciologa */
-  constructor(look: Partial<Record<"jacket" | "pants" | "skin" | "hat" | "pack" | "hair", string>> = {}) {
+  constructor(look: Partial<Record<"jacket" | "pants" | "skin" | "hat" | "pack" | "hair" | "shoes" | "accent", string>> = {}) {
     // superfici morbide (niente sfaccettature): personaggi da cartone, come in Coastal World
     const m = (color: string, rough = 0.8) => new THREE.MeshStandardMaterial({ color, roughness: rough });
-    const L = { jacket: "#c2375a", pants: "#3b3550", skin: "#f0c3a6", hat: "#f2b632", pack: "#2f8f8a", hair: "#8a5a3a", ...look };
-    const jacket = m(L.jacket, 0.6), pants = m(L.pants), skin = m(L.skin), boot = m("#4a3427"), hat = m(L.hat), pack = m(L.pack, 0.7), hair = m(L.hair);
+    const L = { jacket: "#c2375a", pants: "#3b3550", skin: "#f0c3a6", hat: "#f2b632", pack: "#2f8f8a", hair: "#8a5a3a", shoes: "#4a3427", accent: "#f4e4de", ...look };
+    const jacket = m(L.jacket, 0.6), pants = m(L.pants), skin = m(L.skin), boot = m(L.shoes), hat = m(L.hat), pack = m(L.pack, 0.7), hair = m(L.hair), accent = m(L.accent, 0.7);
     this.mats = { jacket, hat };
     const limb = (len: number, r: number, mat: THREE.Material, footMat?: THREE.Material) => {
       const pivot = new THREE.Group();
@@ -74,8 +74,19 @@ export class Hiker {
     const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.24, 0.42, 4, 10), jacket);
     torso.position.y = 1.15;
     torso.scale.set(1, 1, 0.8);
+    // un tocco di colore: il colletto e la cerniera della giacca, e i polsini (più sotto, sulle braccia)
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.05, 6, 14), accent);
+    collar.rotation.x = Math.PI / 2;
+    collar.position.y = 1.43;
+    const zip = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.5, 0.02), accent);
+    zip.position.set(0, 1.12, 0.19);
     this.armL = limb(0.42, 0.075, jacket);
     this.armR = limb(0.42, 0.075, jacket);
+    for (const arm of [this.armL, this.armR]) {
+      const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.07, 10), accent);
+      cuff.position.y = -0.47;
+      arm.add(cuff);
+    }
     this.armL.position.set(-0.3, 1.38, 0);
     this.armR.position.set(0.3, 1.38, 0);
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), skin);
@@ -85,15 +96,17 @@ export class Hiker {
     const pom = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), hat);
     pom.position.y = 1.86;
     const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.18, 3, 6), hair);
-    tail.position.set(0, 1.5, -0.17);
-    tail.rotation.x = 0.4;
+    tail.position.set(0, 1.5, -0.19);
+    tail.rotation.x = 0.12; // ricade dritta dietro la nuca
+    tail.scale.setScalar(0.8); // con la testa più grande, una coda più piccola
     // lo zaino: arrotondato, come un sacco morbido
     const backpack = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.16, 4, 12), pack);
     backpack.scale.set(1.05, 1, 0.62);
     backpack.position.set(0, 1.18, -0.27);
-    const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.42, 8), m("#f4e4de"));
+    // il materassino arrotolato, appoggiato sopra lo zaino (corto: di tre quarti sembrava una mano alzata)
+    const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 10), m("#4f86b8")); // azzurro, come i materassini di gommapiuma
     roll.rotation.z = Math.PI / 2;
-    roll.position.set(0, 1.47, -0.27);
+    roll.position.set(0, 1.4, -0.3);
     // la faccia: occhi, guance rosa e un sorriso (come i personaggi di Coastal World, semplici ma vivi)
     const eyeM = m("#2a1f2b", 0.4), cheekM = new THREE.MeshBasicMaterial({ color: "#f39a92", transparent: true, opacity: 0.75 });
     const face = new THREE.Group();
@@ -166,7 +179,7 @@ export class Hiker {
       o.position.y -= 1.45;
       headGroup.add(o);
     }
-    this.body.add(headGroup, this.legL, this.legR, torso, this.armL, this.armR, backpack, roll, harness, loop, bandana);
+    this.body.add(headGroup, this.legL, this.legR, torso, collar, zip, this.armL, this.armR, backpack, roll, harness, loop, bandana);
     this.applyGear();
     this.body.traverse((o) => ((o as THREE.Mesh).castShadow = true));
     this.root.add(this.body);
