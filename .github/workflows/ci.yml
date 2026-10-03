@@ -1,0 +1,30 @@
+# A ogni push e pull request: il gioco si compila, le prove veloci passano, il gioco si avvia nel browser.
+name: Verifica
+
+on:
+  push:
+    branches: [main, "m*"]
+  pull_request:
+
+jobs:
+  verifica:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build (TypeScript e Vite)
+        run: npm run build
+      - name: Prove veloci
+        run: npm test
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - name: Prova di avvio nel browser
+        run: npm run test:smoke
+        env:
+          CI: "true"
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}

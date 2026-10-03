@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Montagna viva · Val Masino</title>
+    <meta name="description" content="Un gioco tranquillo nella Val Masino vera: sentieri, rifugi, ghiacciai e il tramonto all'ora giusta." />
+    <meta name="theme-color" content="#231a2b" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23231a2b'/%3E%3Ccircle cx='22' cy='11' r='4.5' fill='%23f0957e'/%3E%3Cpath d='M2 27l9-13 5 6 5-5 9 12z' fill='%23f4e4de'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="labels" aria-hidden="true"></div>
+
+    <div id="hud">
+      <div class="where"><span id="place">Val Masino</span><span id="alt">–</span></div>
+    </div>
+    <p id="hint">WASD cammina · Shift corre · Spazio salta e vola · Q R gira · E interagisci · Tab telefono · Esc pausa</p>
+    <div id="stick" aria-hidden="true"><div id="knob"></div></div>
+
+    <section id="intro">
+      <div class="card">
+        <p class="kicker">Val Masino · prototipo</p>
+        <h1>Montagna viva</h1>
+        <p class="lead">Un gioco tranquillo nella valle vera: terreno, sentieri, rifugi e ghiacciai sono quelli reali. Sei a San Martino, sono le 14 di un giorno di metà settembre e il sole tramonta verso le 19:30.</p>
+        <p class="lead small">Marta, la guida, ti aspetta in paese con lo zaino e le missioni. Lungo la strada: timbri dei rifugi, libri di vetta, animali, rimbalzello, il Sasso Remenno… e da un punto alto puoi lanciarti in parapendio. Col suono acceso è più bello.</p>
+        <div class="who-am-i">
+          <p class="who-k">Il tuo nome nella valle</p>
+          <p class="who-name"><b id="pname">Marmotta curiosa</b> <button type="button" id="pname-new">Cambia</button></p>
+          <div class="swatches" role="radiogroup" aria-label="Colore della giacca">
+            <button type="button" role="radio" data-c="#c2375a" style="--c:#c2375a" aria-label="Bordeaux"></button>
+            <button type="button" role="radio" data-c="#2f8f8a" style="--c:#2f8f8a" aria-label="Verde acqua"></button>
+            <button type="button" role="radio" data-c="#e07d3e" style="--c:#e07d3e" aria-label="Arancio"></button>
+            <button type="button" role="radio" data-c="#3b5a8a" style="--c:#3b5a8a" aria-label="Blu"></button>
+            <button type="button" role="radio" data-c="#f2b632" style="--c:#f2b632" aria-label="Giallo"></button>
+          </div>
+          <p class="note-mp">Chi gioca insieme a te vede il tuo nome e la tua giacca. Nient'altro.</p>
+        </div>
+        <button id="start" type="button" disabled>Preparo lo zaino…</button>
+        <p id="loading">Carico la valle…</p>
+        <p class="disclaimer">È un gioco, non uno strumento per escursioni vere: tempi, strade e meteo sono semplificati. <button type="button" id="credits-open">Avvertenze e crediti</button></p>
+        <p class="credits">Terreno Copernicus GLO-30 © DLR e Airbus · mappe © contributori OpenStreetMap (ODbL)</p>
+      </div>
+    </section>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

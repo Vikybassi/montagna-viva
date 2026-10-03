@@ -1,0 +1,11 @@
+# dipendenze e build
+node_modules/
+dist/
+# dati grezzi scaricati (si rigenerano con npm run data; i dati del gioco sono in public/data)
+data-cache/
+# sistema ed editor
+.DS_Store
+*.log
+.vscode/
+# risultati delle prove automatiche
+tests/output/

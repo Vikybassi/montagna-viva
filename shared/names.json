@@ -1,0 +1,67 @@
+{
+  "_": "Liste condivise da gioco e server: nomi dei giocatori (animale + aggettivo), frasi pronte, cime col libro di vetta, missioni. Il server accetta solo questi valori.",
+  "animals": [
+    "Marmotta",
+    "Stambecca",
+    "Aquila",
+    "Camoscia",
+    "Volpe",
+    "Lepre",
+    "Civetta",
+    "Gracchia",
+    "Ermellina",
+    "Lucertola",
+    "Farfalla",
+    "Trota",
+    "Pernice",
+    "Vipera",
+    "Ghiandaia",
+    "Capinera"
+  ],
+  "adjectives": [
+    "curiosa",
+    "lenta",
+    "veloce",
+    "coraggiosa",
+    "sognatrice",
+    "golosa",
+    "silenziosa",
+    "allegra",
+    "distratta",
+    "testarda",
+    "saggia",
+    "mattiniera",
+    "nottambula",
+    "felice",
+    "timida",
+    "avventurosa"
+  ],
+  "phrases": [
+    "👋 Ciao!",
+    "Ciao!",
+    "Andiamo al rifugio?",
+    "Guarda che vista!",
+    "Arriva il temporale, scendiamo!",
+    "Ci vediamo in vetta",
+    "Aspettami!"
+  ],
+  "summits": [
+    "Monte Disgrazia",
+    "Pizzo Badile",
+    "Pizzo Cengalo",
+    "Monte Pioda",
+    "Cima di Rosso",
+    "Pizzo Bello",
+    "Punta Rasica",
+    "Monte Sissone",
+    "Pizzo Porcellizzo",
+    "Pizzi Gemelli"
+  ],
+  "missions": [
+    "zaino",
+    "rientro",
+    "fauna",
+    "ghiacciaio",
+    "corsa"
+  ]
+}

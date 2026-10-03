@@ -1,0 +1,16 @@
+{
+  "bbox": {
+    "south": 46.19,
+    "north": 46.31,
+    "west": 9.55,
+    "east": 9.78
+  },
+  "cols": 444,
+  "rows": 335,
+  "step": 40,
+  "widthM": 17705,
+  "heightM": 13358,
+  "min": 583,
+  "max": 3616,
+  "source": "Copernicus GLO-30 DEM, © DLR e Airbus (programma Copernicus)"
+}
