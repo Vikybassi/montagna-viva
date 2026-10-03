@@ -4,7 +4,8 @@ Le situazioni strane che il gioco deve reggere, ognuna con la prova che la contr
 `unit` = `npm test` (Vitest, `tests/unit/`), `e2e` = `npm run test:e2e` (Chrome, `tests/e2e/`).
 Quando si corregge un bug, si aggiunge qui la riga e la prova che lo tiene lontano.
 
-Stato al 3 ottobre 2026 (M1): **tutti verdi** — 51 prove unit, 8 prove e2e.
+Stato al 3 ottobre 2026 (M1): **tutti verdi** — 51 prove unit, 8 prove e2e (anche in grafica software, come su GitHub).
+Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco fa pochi fotogrammi al secondo.
 
 ## Salvataggi
 
@@ -48,7 +49,7 @@ Stato al 3 ottobre 2026 (M1): **tutti verdi** — 51 prove unit, 8 prove e2e.
 | 21 | Qualità bassa: alberi non disegnati | Non sono solidi | unit `collide` |
 | 22 | In volo col parapendio sopra un tetto | Nessun urto | unit `collide` |
 | 23 | Ogni persona, porta, cartello, ometto… | Ha un punto libero a portata di E | e2e `collide` |
-| 24 | La telecamera dietro un muro | Si avvicina, non entra nella casa | unit `collide`, e2e `collide` |
+| 24 | La telecamera dietro un muro, anche girandola di colpo | Si avvicina, non entra nella casa (nemmeno mentre scivola al suo posto) | unit `collide`, e2e `collide` |
 | 25 | Entrare dalla porta per ripararsi | La porta funziona (niente urti mentre entri o sei dentro) | e2e `shelter` |
 | 26 | Ritrovarsi dentro una casa (viaggio veloce, salto) | Si esce camminando, non si resta bloccati | e2e `collide` |
 

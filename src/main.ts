@@ -641,6 +641,14 @@ function frame() {
   // dopo un'inquadratura la telecamera torna piano dietro di te
   if (!cinema) camK = Math.min(14, camK + dt * 5);
   camera.position.lerp(camPos, 1 - Math.exp(-camK * dt));
+  // anche mentre la telecamera scivola verso il suo posto: il tragitto dritto può tagliare un muro
+  if (!play.indoors && !cinema && !play.climb?.active) {
+    const dir = camera.position.clone().sub(camTarget);
+    const len = dir.length();
+    dir.normalize();
+    const hitD = obstacles.cast(camTarget, dir, len);
+    if (hitD !== null) camera.position.copy(camTarget).addScaledVector(dir, Math.max(0.5, hitD - 0.6));
+  }
   lookAt.lerp(camTarget, 1 - Math.exp(-Math.max(camK, 3) * dt));
   camera.lookAt(lookAt);
   if (finder) {

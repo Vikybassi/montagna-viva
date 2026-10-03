@@ -1,6 +1,6 @@
 // Case e tronchi solidi: le persone e le cose con cui parlare sono raggiungibili, nei rifugi non si entra dai muri,
 // e la telecamera non finisce dentro una casa
-import { check, openGame, wait } from "./lib.mjs";
+import { check, openGame, until, wait } from "./lib.mjs";
 
 export default async function collide(browser) {
   const { page, errors } = await openGame(browser, { t: 11 });
@@ -23,9 +23,9 @@ export default async function collide(browser) {
     const h = window.__mv.data.huts.find((x) => x.name.includes("Omio"));
     const cx = h.p[0] * 0.3, cz = h.p[1] * 0.3;
     const b = window.__mv.obstacles.all.filter((s) => s.kind === "box").sort((a, b2) => Math.hypot(a.x - cx, a.z - cz) - Math.hypot(b2.x - cx, b2.z - cz))[0];
-    // 8 m fuori, dal lato lungo (asse z della casa), lontano dalla porta che è a +z
+    // 2,5 m fuori (su GitHub, in grafica software, si cammina piano), dal lato lungo, lontano dalla porta che è a +z
     const c = Math.cos(b.rot), s = Math.sin(b.rot);
-    const lx = 0, lz = -(b.hd + 8);
+    const lx = 0, lz = -(b.hd + 2.5);
     const x = b.x + lx * c + lz * s, z = b.z - lx * s + lz * c;
     window.__mv.tp(x, z);
     const dx = b.x - x, dz = b.z - z;
@@ -34,7 +34,13 @@ export default async function collide(browser) {
   });
   await wait(300);
   await page.keyboard.down("w");
-  await wait(2500);
+  // si cammina finché si arriva vicino al muro (o si resta lì un po': deve fermarsi, non attraversarlo)
+  const near = (b) => {
+    const p = window.__mv.me, c = Math.cos(b.rot), s = Math.sin(b.rot), dx = p.x - b.x, dz = p.z - b.z;
+    return Math.abs(dx * s + dz * c) < b.hd + 0.6;
+  };
+  await until(page, near, box, 30000);
+  await wait(1500); // ancora avanti contro il muro
   await page.keyboard.up("w");
   await wait(200);
   const inside = await page.evaluate((b) => {
@@ -50,7 +56,7 @@ export default async function collide(browser) {
     const p = window.__mv.me;
     window.__mv.setYaw(Math.atan2(b.x - p.x, b.z - p.z));
   }, box);
-  await wait(1200);
+  await wait(3000);
   const camIn = await page.evaluate((b) => {
     const p = window.__mv.camera.position, c = Math.cos(b.rot), s = Math.sin(b.rot), dx = p.x - b.x, dz = p.z - b.z;
     const lx = dx * c - dz * s, lz = dx * s + dz * c;
@@ -61,7 +67,7 @@ export default async function collide(browser) {
   // finita dentro una casa (un viaggio veloce, un salto): si esce camminando, non si resta bloccata
   await page.evaluate((b) => window.__mv.tp(b.x + 0.3, b.z + 0.2), box);
   await page.keyboard.down("w");
-  await wait(1500);
+  await until(page, (b) => !window.__mv.obstacles.hits(window.__mv.me.x, window.__mv.me.z, window.__mv.me.y, 0.3) && Math.hypot(window.__mv.me.x - b.x, window.__mv.me.z - b.z) > 2, box, 20000);
   await page.keyboard.up("w");
   const out = await page.evaluate((b) => !window.__mv.obstacles.hits(window.__mv.me.x, window.__mv.me.z, window.__mv.me.y, 0.3) && Math.hypot(window.__mv.me.x - b.x, window.__mv.me.z - b.z) > 2, box);
   check(out, "da dentro una casa non si riesce a uscire");

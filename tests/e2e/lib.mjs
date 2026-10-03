@@ -40,3 +40,14 @@ export async function openGame(browser, { save = { packed: true, pack: ["frontal
 
 /** il testo di un elemento, o "" se non c'è */
 export const text = (page, sel) => page.evaluate((s) => document.querySelector(s)?.textContent ?? "", sel);
+
+/** aspetta che `fn` (eseguita nella pagina con `arg`) sia vera; false se non succede entro `ms` (con la grafica software
+ * di GitHub il gioco fa pochi fotogrammi al secondo: meglio aspettare una condizione che un tempo fisso) */
+export async function until(page, fn, arg, ms = 20000) {
+  try {
+    await page.waitForFunction(fn, { timeout: ms, polling: 100 }, arg);
+    return true;
+  } catch {
+    return false;
+  }
+}
