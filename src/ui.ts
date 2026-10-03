@@ -2,7 +2,7 @@ import { sound } from "./audio";
 import { FACTS, ITEMS, PACK_SLOTS, SUMMITS, type Fact, type Topic } from "./content";
 import { SUBJECTS, SUBJECT_IDS } from "./nature";
 import { addLayer } from "./input";
-import { album, exportSave, importSave, notebook, state } from "./state";
+import { ALBUM_MAX, album, exportSave, importSave, notebook, state } from "./state";
 
 /**
  * L'interfaccia sopra il gioco: dialoghi con le persone, avvisi, obiettivo con freccia, fiato e cronometro, e i contenuti
@@ -38,9 +38,10 @@ export function pointGoal(angle: number | null, meters: number | null) {
 }
 
 // ---------- novità per il telefono (il puntino rosso) ----------
-export type PhoneTab = "missioni" | "mappa" | "diario" | "zaino" | "spille" | "armadio";
+export type PhoneTab = "missioni" | "mappa" | "diario" | "foto" | "zaino" | "spille" | "armadio";
 let newsFn: (tab: PhoneTab) => void = () => {};
 export const onNews = (fn: (tab: PhoneTab) => void) => (newsFn = fn);
+addEventListener("mv:foto", () => newsFn("foto"));
 
 // ---------- la missione in corso: titolo e passi (a schermo resta solo l'obiettivo; i passi sono nel telefono) ----------
 export type QuestStep = { text: string; done: boolean; current: boolean };
@@ -191,14 +192,23 @@ function notebookHtml() {
   const got = SUBJECT_IDS.filter((s) => (state.photos[s] ?? 0) > 0).length;
   return `<h3 class="ph-h">Taccuino del naturalista <small>${got} / ${SUBJECT_IDS.length}</small></h3><p class="ph-note">Premi <kbd>P</kbd> per la fotocamera: i fiori protetti si fotografano, non si raccolgono; gli animali si fotografano da lontano, con lo zoom.</p><ul class="ph-notebook">${SUBJECT_IDS.map((id) => {
     const s = SUBJECTS[id], n = state.photos[id] ?? 0;
-    return `<li class="${n ? "got" : ""}">${nb[id] ? `<img src="${nb[id]}" alt="Foto: ${esc(s.name)}">` : `<span class="ph-nb-empty">${s.kind === "fiore" ? "✿" : "?"}</span>`}<b>${esc(s.name)}</b><small>${n ? `${n} ${n === 1 ? "foto" : "foto"}` : esc(s.where)}</small></li>`;
+    return `<li class="${n ? "got" : ""}">${nb[id] ? `<button type="button" class="ph-photo" aria-label="Ingrandisci: ${esc(s.name)}"><img src="${nb[id]}" alt="Foto: ${esc(s.name)}"></button>` : `<span class="ph-nb-empty">${s.kind === "fiore" ? "✿" : "?"}</span>`}<b>${esc(s.name)}</b><small>${n ? `${n} ${n === 1 ? "foto" : "foto"}` : esc(s.where)}</small></li>`;
   }).join("")}</ul>`;
 }
 
-/** il diario: il taccuino del naturalista, poi quello che hai imparato, per argomento */
+/** le foto: l'album (le ultime scattate) e il taccuino del naturalista; un tocco ingrandisce */
+export function photosHtml() {
+  const photos = album();
+  const shots = photos.length
+    ? `<ul class="ph-album">${photos.map((p) => `<li><button type="button" class="ph-photo" aria-label="Ingrandisci: ${esc(p.place)}, ${p.time}"><img src="${p.img}" alt="Foto da ${esc(p.place)}"></button><span>${esc(p.place)} · ${p.time}</span></li>`).join("")}</ul>`
+    : `<p class="ph-empty">Ancora nessuna foto. Premi <kbd>P</kbd> (o il pulsante con la fotocamera) per guardare nel mirino e scattare: quello che metti al centro finisce qui.</p>`;
+  return `<h2>Foto</h2><p class="ph-sub">${photos.length ? `le ultime ${photos.length}${photos.length >= ALBUM_MAX ? " (le più vecchie lasciano il posto alle nuove)" : ""}` : "l'album è vuoto"}</p><h3 class="ph-h">Album</h3>${shots}${notebookHtml()}`;
+}
+
+/** il diario: quello che hai imparato, per argomento */
 export function diaryHtml() {
   const n = state.diary.length;
-  return `<h2>Diario</h2><p class="ph-sub">${n} scoperte su ${FACTS.length}</p>${notebookHtml()}` + TOPICS.map((t) => {
+  return `<h2>Diario</h2><p class="ph-sub">${n} scoperte su ${FACTS.length}</p>` + TOPICS.map((t) => {
     const all = FACTS.filter((f) => f.topic === t.id);
     const known = all.filter((f) => state.diary.includes(f.id));
     const rest = all.length - known.length;
@@ -207,11 +217,10 @@ export function diaryHtml() {
   }).join("");
 }
 
-/** le spille: collezioni, record e album delle foto */
+/** le spille: collezioni e record */
 export function collectionsHtml() {
   const huts = SUMMITS.length;
   const tile = (big: string, label: string, note = "") => `<li><b>${big}</b><span>${label}</span>${note ? `<p>${note}</p>` : ""}</li>`;
-  const photos = album();
   return `<h3 class="ph-h">Collezioni</h3><ul class="ph-tiles">
     ${tile(String(state.stamps.length), "timbri dei rifugi", state.stamps.map(esc).join(" · ") || "Timbra il libretto ai rifugi.")}
     ${tile(`${state.summits.length}/${huts}`, "libri di vetta", state.summits.map(esc).join(" · ") || "Firma il libro sulle cime.")}
@@ -219,7 +228,7 @@ export function collectionsHtml() {
     ${tile(String(state.skipBest), "rimbalzi, il record")}
     ${tile(state.boulder ? "✓" : "–", "in catena sul Sasso Remenno")}
     ${tile(state.bestRun ? fmtTime(state.bestRun) : "–", "sfida di corsa, il record")}
-  </ul>${photos.length ? `<h3 class="ph-h">Album <small>${photos.length}</small></h3><ul class="ph-album">${photos.map((p) => `<li><img src="${p.img}" alt="Foto da ${esc(p.place)}"><span>${esc(p.place)} · ${p.time}</span></li>`).join("")}</ul>` : ""}`;
+  </ul>`;
 }
 
 /** lo zaino, da guardare (prepararlo si fa con Marta) */
@@ -266,6 +275,11 @@ call.setAttribute("role", "alertdialog");
 root.appendChild(call);
 let answer: (() => void) | null = null, decline: (() => void) | null = null, ringTimer = 0;
 /** il telefono squilla: il gioco si ferma finché rispondi (E o Invio) o rifiuti (Esc) */
+let hangUp: (() => void) | null = null;
+/** chi chiamava riattacca (per esempio: il temporale di cui voleva avvisarti è già passato) */
+export function endCall() {
+  if (callOpen) hangUp?.();
+}
 export function ringCall(speaker: string, onAnswer: () => void, onDecline: () => void) {
   callOpen = true;
   refreshBusy();
@@ -283,6 +297,7 @@ export function ringCall(speaker: string, onAnswer: () => void, onDecline: () =>
   };
   answer = () => (stop(), onAnswer());
   decline = () => (stop(), onDecline());
+  hangUp = stop;
   call.querySelector(".call-yes")!.addEventListener("click", () => answer?.());
   call.querySelector(".call-no")!.addEventListener("click", () => decline?.());
   sound.ring();

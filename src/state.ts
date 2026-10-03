@@ -211,14 +211,25 @@ export function album(): { img: string; place: string; time: string }[] {
     return [];
   }
 }
+/** quante foto tiene l'album (le più recenti): ogni foto pesa, e la memoria del browser è poca */
+export const ALBUM_MAX = 12;
 export function addPhoto(p: { img: string; place: string; time: string }) {
-  const a = [p, ...album()].slice(0, 12);
+  const a = [p, ...album()].slice(0, ALBUM_MAX);
   try {
     localStorage.setItem(ALBUM, JSON.stringify(a));
   } catch {
     /* memoria piena: la foto non si salva */
   }
+  newPhoto();
 }
+/** una foto nuova (nell'album o nel taccuino): il telefono accende il puntino sulla scheda Foto */
+const newPhoto = () => {
+  try {
+    dispatchEvent(new Event("mv:foto"));
+  } catch {
+    /* fuori dal browser (prove) */
+  }
+};
 
 /** il taccuino del naturalista: la foto più bella (la prima) di ogni soggetto */
 const NOTEBOOK = KEYS.notebook;
@@ -238,4 +249,5 @@ export function addToNotebook(subject: string, img: string) {
   } catch {
     /* memoria piena */
   }
+  newPhoto();
 }

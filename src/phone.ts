@@ -19,6 +19,7 @@ const TABS: { id: PhoneTab; name: string; key: string; icon: string }[] = [
   { id: "missioni", name: "Missioni", key: "", icon: `<path d="M6 21V4M6 4h11l-2 4 2 4H6"/>` },
   { id: "mappa", name: "Mappa", key: "M", icon: `<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/>` },
   { id: "diario", name: "Diario", key: "J", icon: `<path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10"/>` },
+  { id: "foto", name: "Foto", key: "", icon: `<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>` },
   { id: "zaino", name: "Zaino", key: "Z", icon: `<path d="M7 9a5 5 0 0 1 10 0v11H7zM9 4h6M7 14h10M10 14v2"/>` },
   { id: "spille", name: "Spille", key: "", icon: `<circle cx="12" cy="9" r="5"/><path d="M9 13l-2 8 5-3 5 3-2-8"/>` },
   { id: "armadio", name: "Armadio", key: "", icon: `<path d="M12 7.5a2.2 2.2 0 1 1 2.2-2.2M12 7.5V9l-9 7.5h18L12 9"/>` },
@@ -76,6 +77,21 @@ export class Phone {
     this.device = this.wrap.querySelector(".phone")!;
     this.statusEl = this.wrap.querySelector(".ph-status")!;
     this.body = this.wrap.querySelector(".ph-body")!;
+    // le foto: un tocco le ingrandisce dentro lo schermo, un altro (o Esc) le richiude
+    this.zoom = document.createElement("button");
+    this.zoom.type = "button";
+    this.zoom.className = "ph-zoom";
+    this.zoom.setAttribute("aria-label", "Chiudi la foto");
+    this.body.parentElement!.appendChild(this.zoom);
+    this.zoom.addEventListener("click", () => this.closeZoom());
+    this.body.addEventListener("click", (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>(".ph-photo");
+      if (!b) return;
+      const img = b.querySelector("img")!, cap = b.parentElement?.querySelector("span, b")?.textContent ?? "";
+      this.zoom.innerHTML = `<img src="${img.src}" alt="${img.alt}"><span>${cap}</span>`;
+      this.zoom.classList.add("on");
+      this.zoom.focus();
+    });
     this.wrap.querySelectorAll<HTMLButtonElement>(".ph-tabs button").forEach((b) => b.addEventListener("click", () => this.show(b.dataset.tab as PhoneTab)));
     this.wrap.querySelector(".ph-x")!.addEventListener("click", () => this.close());
     // un clic fuori dal telefono lo mette via
@@ -117,8 +133,17 @@ export class Phone {
     return true;
   }
 
+  private zoom: HTMLButtonElement;
+  private closeZoom() {
+    this.zoom.classList.remove("on");
+  }
   private key(k: string, e: KeyboardEvent) {
     if (e.repeat) return;
+    if (k === "escape" && this.zoom.classList.contains("on")) {
+      e.preventDefault();
+      this.closeZoom();
+      return;
+    }
     if (k === "escape" || k === "tab") {
       e.preventDefault();
       this.close();
@@ -156,6 +181,7 @@ export class Phone {
   }
 
   private show(tab: PhoneTab) {
+    this.closeZoom();
     this.tab = tab;
     this.news.delete(tab);
     this.dots();
@@ -167,7 +193,7 @@ export class Phone {
     if (tab === "mappa") {
       this.body.innerHTML = `<h2>Val Masino</h2><div class="ph-map"></div>`;
       this.map.showIn(this.body.querySelector(".ph-map")!);
-    } else this.body.innerHTML = tab === "missioni" ? this.missionsHtml() : tab === "diario" ? ui.diaryHtml() : tab === "zaino" ? ui.packHtml() : tab === "spille" ? this.badgesHtml() + ui.collectionsHtml() : this.wardrobeHtml();
+    } else this.body.innerHTML = tab === "missioni" ? this.missionsHtml() : tab === "diario" ? ui.diaryHtml() : tab === "foto" ? ui.photosHtml() : tab === "zaino" ? ui.packHtml() : tab === "spille" ? this.badgesHtml() + ui.collectionsHtml() : this.wardrobeHtml();
     this.renderStatus();
   }
 

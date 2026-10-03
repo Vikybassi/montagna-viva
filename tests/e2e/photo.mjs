@@ -1,5 +1,5 @@
 // Fotografia naturalistica: un fiore da vicino, una marmotta da lontano con lo zoom, il taccuino
-import { check, openGame, text, wait } from "./lib.mjs";
+import { check, openGame, text, until, wait } from "./lib.mjs";
 
 export default async function photo(browser) {
   const { page, errors } = await openGame(browser);
@@ -42,6 +42,20 @@ export default async function photo(browser) {
   await page.keyboard.press("p");
   await wait(800);
   check(await page.evaluate(() => window.__mv.state.photos.marmotta === 1), "la marmotta è nel taccuino");
+  await page.keyboard.press("Escape");
+  // le foto si guardano nel telefono, scheda Foto (col puntino rosso delle novità)
+  check(await until(page, () => window.__mv.layer() === "mondo"), "si esce dal mirino");
+  check(await page.evaluate(() => document.querySelector('.ph-tabs button[data-tab="foto"]').classList.contains("new")), "la scheda Foto ha il puntino delle novità");
+  await page.keyboard.press("Tab");
+  await until(page, () => window.__mv.layer() === "telefono");
+  await page.evaluate(() => document.querySelector('.ph-tabs button[data-tab="foto"]').click());
+  check(await until(page, () => document.querySelectorAll(".ph-album .ph-photo").length >= 2), "nell'album ci sono le due foto");
+  check(await page.evaluate(() => document.querySelectorAll(".ph-notebook li.got").length) >= 2, "nel taccuino ci sono genziana e marmotta");
+  await page.evaluate(() => document.querySelector(".ph-album .ph-photo").click());
+  check(await until(page, () => document.querySelector(".ph-zoom.on img")), "un tocco ingrandisce la foto");
+  await page.keyboard.press("Escape");
+  check(await until(page, () => !document.querySelector(".ph-zoom.on") && window.__mv.layer() === "telefono"), "Esc chiude la foto e il telefono resta aperto");
+  await page.keyboard.press("Escape");
   check(errors.length === 0, `errori nella pagina: ${errors.join(" | ")}`);
   await page.close();
 }

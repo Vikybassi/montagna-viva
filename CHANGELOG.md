@@ -16,6 +16,11 @@ sola, muri veri, orologio che può saltare senza rompere niente.
   temporale già finito.
 - Dal secondo giorno in poi: rientro «con la luce», avviso del buio (una volta per sera) e consigli di Giulio giusti.
 - Pausa: esporta e importa la partita in un file; un salvataggio rotto non blocca il gioco (se ne tiene una copia).
+- In parete braccia e gambe non si incrociano più (il modello aveva sinistra e destra scambiate).
+- Col temporale in arrivo l'obiettivo diventa il riparo appena Marta chiama, non quando inizia a piovere.
+- Le persone rispondono sempre, anche a commissione accettata o finita (Rosa non resta più muta).
+- Telefono: nuova scheda **Foto** con l'album e il taccuino del naturalista; un tocco ingrandisce la foto.
+- Il telefonino nell'angolo è più grande.
 
 **Dentro**
 

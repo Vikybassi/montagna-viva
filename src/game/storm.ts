@@ -30,10 +30,11 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
 
   /** la fonte "emergenza" del motore delle missioni: col temporale prima ci si mette al riparo */
   function quest(): Quest | null {
-    if (weather.phase !== "storm" || sheltered || !stormShelter) return null;
+    // già con le nuvole nere (quando Marta chiama), non solo quando piove
+    if (weather.phase === "clear" || sheltered || !stormShelter) return null;
     const sh = stormShelter.h, me = hiker.root.position;
     return {
-      title: "Temporale! Mettiti al riparo",
+      title: weather.phase === "storm" ? "Temporale! Mettiti al riparo" : "Temporale in arrivo: mettiti al riparo",
       steps: [
         { text: "Scendi dalle creste e stai lontana dalle croci", done: me.y / S < 2400 },
         { text: `Raggiungi ${sh.name} (circa ${hm(stormShelter.hours)}) ed entra: E davanti alla porta`, done: false, pos: c.doors.get(sh.name)?.front ?? at(sh), name: sh.name },
@@ -138,21 +139,28 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
     update(dt: number) {
       const me = hiker.root.position;
       for (const e of weather.update(dt, c.getHours(), c.camPos())) {
+        // nuvole nere o temporale già iniziato (se l'orologio è saltato): da qui la missione aspetta, conta il riparo
+        const seekShelter = () => {
+          if (stormShelter) return;
+          stormShelter = routes.nearestShelter();
+          shelterHint = false;
+          sheltered = indoors;
+          // la strada scelta sulla mappa si sospende: ora conta il riparo
+          routes.clearGuide();
+          routes.resetMissionRoute();
+          if (stormShelter && !indoors) setTimeout(() => ui.toast(`<b>La missione aspetta.</b> Segui la strada arancione fino a ${stormShelter?.h.name ?? "un riparo"}.`), 1800);
+        };
         if (e === "building") {
           ui.toast("<b>Nuvole nere sul Disgrazia…</b> tra poco arriva il temporale.", "warn");
           sound.thunder();
           callPending = true; // Marta chiama appena sei libera
+          seekShelter();
         }
         if (e === "start") {
           if (!calledToday) callPending = true;
           ui.toast("<b>Temporale!</b> Scendi dalle creste e cerca riparo in un rifugio o in un bivacco.", "warn");
-          stormShelter = routes.nearestShelter();
-          shelterHint = false;
-          // la strada scelta sulla mappa si sospende: ora conta il riparo
-          routes.clearGuide();
-          if (stormShelter) setTimeout(() => ui.toast(`<b>La missione aspetta.</b> Segui la strada arancione fino a ${stormShelter?.h.name ?? "un riparo"}.`), 1800);
+          seekShelter();
           ui.learned(learn("temporale"));
-          sheltered = false;
         }
         if (e === "thunder") sound.thunder();
         if (e === "end" || e === "passed") {
@@ -161,6 +169,7 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
           ui.toast("<b>Il temporale è passato.</b> Puoi riprendere la missione da dove l'avevi lasciata.");
           stormShelter = null;
           callPending = false; // niente telefonata per un temporale già finito
+          ui.endCall(); // e se Marta stava squillando, riattacca
         }
       }
       if (weather.phase === "storm") {
@@ -179,7 +188,12 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
       // la telefonata di Marta: appena sei libera (non mentre parli, arrampichi, corri o sei già dentro)
       const today = Math.floor(c.getHours() / 24);
       if (today !== callDay) (callDay = today), (calledToday = false);
-      if (callPending && weather.phase === "clear") callPending = false; // saltato l'orologio oltre il temporale
+      if (weather.phase === "clear" && (callPending || stormShelter)) {
+        // saltato l'orologio oltre il temporale (dalle nuvole al sereno, senza pioggia): niente chiamata, niente riparo
+        callPending = false;
+        stormShelter = null;
+        ui.endCall();
+      }
       if (callPending && !calledToday && !ui.busy && !busy()) martaCalls();
     },
   };

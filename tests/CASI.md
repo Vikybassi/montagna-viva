@@ -27,6 +27,8 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 9 | Commissione (pane) e missione insieme | In alto quella scelta; l'altra nel telefono con «Segui» | unit `quests` |
 | 10 | Sfida di corsa mentre segui una commissione | Conta la corsa | unit `quests` |
 | 11 | Niente in corso | Non segue niente (in alto: «Esplora la valle · parla con Marta») | unit `quests` |
+| 11b | Arrivano le nuvole nere e Marta chiama | L'obiettivo in alto diventa subito il riparo, prima che inizi a piovere | e2e `shelter` |
+| 11c | Commissione accettata o finita (Rosa col pane già nello zaino) | La persona risponde sempre: ricorda dove andare, o ringrazia | e2e `encounters` |
 
 ## Tastiera
 
@@ -53,6 +55,13 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 25 | Entrare dalla porta per ripararsi | La porta funziona (niente urti mentre entri o sei dentro) | e2e `shelter` |
 | 26 | Ritrovarsi dentro una casa (viaggio veloce, salto) | Si esce camminando, non si resta bloccati | e2e `collide` |
 
+## Arrampicata e foto
+
+| # | Caso | Cosa deve succedere | Prova |
+|---|------|---------------------|-------|
+| 26b | In parete, presa dopo presa | Braccia e gambe mai incrociate: ogni arto va dal lato della sua spalla o anca (il modello aveva i lati scambiati) | e2e `boulder` |
+| 26c | Una foto nuova | Puntino sulla scheda Foto; album e taccuino nel telefono; un tocco ingrandisce, Esc richiude solo la foto | e2e `photo` |
+
 ## Tempo e meteo (l'orologio che salta)
 
 | # | Caso | Cosa deve succedere | Prova |
@@ -61,7 +70,7 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 28 | Aspettare al riparo fino alla fine | Il temporale finisce adesso: arcobaleno possibile | unit `weather`, e2e `shelter` |
 | 29 | Dormire durante il temporale | La mattina è passato, **senza** arcobaleno, il riparo non è più l'obiettivo | unit `weather`, e2e `time` |
 | 30 | Dal temporale di oggi a quello di domani | Prima finisce quello vecchio, poi inizia il nuovo | unit `weather` |
-| 31 | Nuvole cariche, poi salto oltre il temporale | Marta non chiama per un temporale già finito | e2e `time` |
+| 31 | Nuvole cariche, poi salto oltre il temporale | Marta non chiama per un temporale già finito; se squillava, riattacca; il riparo non è più l'obiettivo | e2e `time` |
 | 32 | Ore oltre le 24 (secondo giorno) | Luce del giorno giusta: rientro «con la luce», avviso del buio una volta per sera, margine di Giulio | unit `weather` (`isDaylight`) |
 | 33 | Elicottero mancato (salto oltre la sua ora) | Non arriva in ritardo | codice (`events.ts`: finestra di mezz'ora) |
 

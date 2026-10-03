@@ -1,13 +1,21 @@
 // Temporale: la telefonata di Marta, la strada al riparo, la porta, l'attesa, l'uscita
-import { check, openGame, text, wait } from "./lib.mjs";
+import { check, openGame, text, until, wait } from "./lib.mjs";
 
 export default async function shelter(browser) {
   const { page, errors } = await openGame(browser, { t: 14 });
-  await page.evaluate(() => window.__mv.setHours(16.9));
-  await wait(2500);
-  check(await page.evaluate(() => !!document.querySelector(".call.on")), "Marta chiama quando arriva il temporale");
+  // nuvole nere (non piove ancora): Marta chiama e l'obiettivo diventa subito il riparo
+  await page.evaluate(() => window.__mv.setHours(window.__mv.weather.endsAt - 1.5 - 0.3));
+  check(await until(page, () => !!document.querySelector(".call.on")), "Marta chiama quando arrivano le nuvole nere");
+  check(await page.evaluate(() => window.__mv.weather.phase) === "building", "non piove ancora");
   await page.keyboard.press("Escape"); // rifiuta: arriva un messaggio
-  await wait(800);
+  await until(page, () => (document.querySelector(".goal-text")?.textContent ?? "").includes("Raggiungi") || window.__mv.weather.phase === "storm");
+  check(
+    (await page.evaluate(() => window.__mv.weather.phase)) === "building" && (await text(page, ".goal-text")).includes("Raggiungi"),
+    `già con le nuvole (prima della pioggia) l'obiettivo è il riparo (era: ${await text(page, ".goal-text")})`,
+  );
+  // poi piove
+  await page.evaluate(() => window.__mv.setHours(16.9));
+  await until(page, () => window.__mv.weather.phase === "storm");
   const goal = await text(page, ".goal-text");
   check(goal.includes("Raggiungi") && goal.includes("entra"), `l'obiettivo è il riparo (era: ${goal})`);
   const name = goal.match(/Raggiungi (.+?) [(]/)[1];

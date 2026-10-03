@@ -77,9 +77,11 @@ export function buildEncounters(c: EncounterCtx) {
   if (done("luca")) luca.h.root.position.copy(near(c.places.martino, 14, -6));
   interacts.push({
     pos: luca.h.root.position, r: 6,
-    text: () => (done("luca") ? null : following ? null : "Parla con Luca"),
+    text: () => (done("luca") ? "Saluta Luca" : "Parla con Luca"),
     act: async () => {
       face(luca.h);
+      if (done("luca")) return void ui.say("Luca, escursionista", "Ce l'ho fatta a prendere il bus grazie a te! La prossima volta scarico la cartina prima di partire, e porto una batteria in più.");
+      if (following) return void ui.say("Luca, escursionista", "Ti seguo! Vai pure, ma non troppo veloce: San Martino è giù in fondo alla valle.");
       const i = await ui.say("Luca, escursionista", "Scusa… mi sono perso. Seguivo il sentiero sul telefono, ma qui non c'è campo e la batteria è quasi finita. Devo tornare a San Martino per il bus: mi accompagni?", ["Certo, seguimi!", "Adesso non posso"]);
       if (i !== 0) return;
       following = true;
@@ -94,9 +96,10 @@ export function buildEncounters(c: EncounterCtx) {
     const g = person({ jacket: "#f2b632", hat: "#e05a8f", pack: "#e9dcc0", hair: "#3a2a20" }, near(c.places.bagni, 12, 8), "Giorgia", done("giorgia") ? "" : "ha bisogno di un consiglio");
     interacts.push({
       pos: g.h.root.position, r: 6,
-      text: () => (done("giorgia") ? null : "Parla con Giorgia"),
+      text: () => (done("giorgia") ? "Saluta Giorgia" : "Parla con Giorgia"),
       act: async () => {
         face(g.h);
+        if (done("giorgia")) return void ui.say("Giorgia, turista", "Scarpe da trekking ai piedi e giacca nello zaino: adesso sì che salgo tranquilla. Ci vediamo all'Omio!");
         for (;;) {
           const i = await ui.say("Giorgia, turista", "Ciao! Salgo al Rifugio Omio. Sono in infradito, ma tanto è un sentiero, no? Che dici?", ["Vai pure, è facile", "Torna a cambiarti: servono scarpe da escursione", "Vai, ma corri così fai prima"]);
           if (i === 1) break;
@@ -114,9 +117,15 @@ export function buildEncounters(c: EncounterCtx) {
   const rosa = person({ jacket: "#e9dcc0", hat: "#ffffff", pack: "#c2375a", hair: "#8a5a3a" }, near(c.places.martino, -10, 34), "Rosa", done("pane") ? "panettiera" : "ha una commissione");
   interacts.push({
     pos: rosa.h.root.position, r: 6,
-    text: () => (done("pane") || state.carrying === "pane" ? null : "Parla con Rosa"),
+    text: () => (done("pane") ? "Saluta Rosa" : "Parla con Rosa"),
     act: async () => {
       face(rosa.h);
+      if (done("pane")) return void ui.say("Rosa, panettiera", "Giulio mi ha scritto che il pane è arrivato ancora croccante. Grazie! Quando ripassi di qui, una fetta di torta è tua.");
+      if (state.carrying === "pane") {
+        // hai già il pane: Rosa ti ricorda dove portarlo
+        await ui.say("Rosa, panettiera", "Il pane è nello zaino, ben avvolto. Giulio è al Rifugio Omio, sopra Bagni di Masino: segui l'indicazione in alto e la strada arancione. Salendo bevi, e non correre: il pane non scappa!");
+        return;
+      }
       if (state.carrying) {
         await ui.say("Rosa, panettiera", "Vedo che hai già le mani occupate! Torna quando hai finito.");
         return;
@@ -162,9 +171,10 @@ export function buildEncounters(c: EncounterCtx) {
     });
     interacts.push({
       pos: kid.h.root.position, r: 6,
-      text: () => (done("cappello") ? null : "Parla con Tommaso"),
+      text: () => (done("cappello") ? "Saluta Tommaso" : "Parla con Tommaso"),
       act: async () => {
         face(kid.h);
+        if (done("cappello")) return void ui.say("Tommaso", "Guarda, adesso lo tengo legato sotto il mento! Così il vento non me lo porta più via.");
         if (state.carrying === "cappello") {
           await ui.say("Tommaso", "Il mio cappello! Grazie! La mamma dice che in montagna il cappello serve sempre: il sole qui brucia anche se fa fresco.");
           state.carrying = null;

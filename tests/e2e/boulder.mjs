@@ -35,6 +35,17 @@ export default async function boulder(browser) {
     }
     await page.mouse.click(t.x, t.y);
     await wait(650);
+    // braccia e gambe mai incrociate: ogni arto arriva dal lato della sua spalla (o anca)
+    const crossed = await page.evaluate(() => {
+      const c = window.__mv.climb, h = c.hiker, R = c.right;
+      const along = (o, len) => { const e = o.matrixWorld.elements; return { base: e[12] * R.x + e[13] * R.y + e[14] * R.z, tip: (e[4] * -len + e[12]) * R.x + (e[5] * -len + e[13]) * R.y + (e[6] * -len + e[14]) * R.z }; };
+      const pair = (l, r, len) => {
+        const a = along(l, len), b = along(r, len);
+        return Math.sign(b.base - a.base) !== Math.sign(b.tip - a.tip) && Math.abs(b.tip - a.tip) > 0.05;
+      };
+      return [pair(h.armL, h.armR, 0.57) ? "braccia" : "", pair(h.legL, h.legR, 0.8) ? "gambe" : ""].filter(Boolean).join(" e ");
+    });
+    check(!crossed, `in parete si incrociano le ${crossed}`);
   }
   await page.waitForFunction(() => !window.__mv.climb.active, { timeout: 20000 });
   check(await page.evaluate(() => window.__mv.state.blocks.includes("torrente")), "il blocco risulta fatto");

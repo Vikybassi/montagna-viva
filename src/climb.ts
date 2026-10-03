@@ -896,7 +896,7 @@ export class Climb {
     const free = this.shaking && this.phase === "climb" ? (DRAIN[this.hands[0].kind] <= DRAIN[this.hands[1].kind] ? 1 : 0) : -1;
     h.climbIK(free === 0 ? null : this.handPos[0], free === 1 ? null : this.handPos[1], this.feet[0], this.feet[1], lean);
     // il braccio libero penzola e si scuote
-    if (free !== -1) h.shakeArm(free as 0 | 1, performance.now() / 1000);
+    if (free !== -1 && h.freeArm !== -1) h.shakeArm(h.freeArm, performance.now() / 1000);
   }
 
   /** il suggerimento: la presa della via subito sopra quelle che tieni (o, se non ci arrivi, la più alta a portata) */

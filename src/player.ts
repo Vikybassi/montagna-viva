@@ -335,10 +335,26 @@ export class Hiker {
       limb.quaternion.setFromUnitVectors(DOWN, d.divideScalar(Math.max(L, 1e-4)));
       limb.scale.set(1, THREE.MathUtils.clamp(L / len, 0.55, 1.5), 1);
     };
-    aim(this.armL, handL, 0.57);
-    aim(this.armR, handR, 0.57);
-    aim(this.legL, footL, 0.8);
-    aim(this.legR, footR, 0.8);
+    // ogni mano e ogni piede all'arto dal suo lato, misurato sul corpo vero (spalla a spalla, anca ad anca): così
+    // braccia e gambe non si incrociano mai, comunque sia girato il modello
+    const pair = (l: THREE.Object3D, r: THREE.Object3D, a: THREE.Vector3 | null, b: THREE.Vector3 | null, len: number) => {
+      const pl = l.getWorldPosition(new THREE.Vector3()), pr = r.getWorldPosition(new THREE.Vector3());
+      const axis = pr.clone().sub(pl);
+      const side = (v: THREE.Vector3) => v.clone().sub(pl).dot(axis);
+      let [tl, tr] = [a, b];
+      if (a && b) {
+        if (side(a) > side(b)) [tl, tr] = [b, a];
+      } else if (a || b) {
+        const t = (a ?? b)!;
+        const nearL = t.distanceToSquared(pl) <= t.distanceToSquared(pr);
+        [tl, tr] = nearL ? [t, null] : [null, t];
+      }
+      aim(l, tl, len);
+      aim(r, tr, len);
+      return tl === null && tr !== null ? 0 : tr === null && tl !== null ? 1 : -1;
+    };
+    this.freeArm = pair(this.armL, this.armR, handL, handR, 0.57) as 0 | 1 | -1;
+    pair(this.legL, this.legR, footL, footR, 0.8);
   }
 
   /** casco e imbrago al posto di zaino, cappello e bastoncini (e viceversa) */
@@ -394,6 +410,8 @@ export class Hiker {
   }
 
   /** in parete: un braccio penzola e si scuote (per far riposare i muscoli), l'altro tiene la presa */
+  /** in parete: il braccio del modello rimasto senza presa (0 = armL, 1 = armR), -1 se tengono tutte e due */
+  freeArm: 0 | 1 | -1 = -1;
   shakeArm(hand: 0 | 1, time: number) {
     const a = hand === 0 ? this.armL : this.armR;
     a.scale.set(1, 1, 1);

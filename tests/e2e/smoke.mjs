@@ -8,7 +8,7 @@ export default async function smoke(browser) {
   await wait(600);
   check(await page.evaluate(() => document.querySelector(".phone-wrap").classList.contains("on")), "Tab apre il telefono");
   check(await page.evaluate(() => window.__mv.busy()), "col telefono aperto il gioco è in pausa");
-  for (const k of ["m", "j", "z", "5", "6", "1"]) {
+  for (const k of ["m", "j", "z", "4", "6", "7", "1"]) {
     await page.keyboard.press(k);
     await wait(250);
   }
