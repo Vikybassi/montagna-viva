@@ -3,6 +3,7 @@ import { SLOTS, WARDROBE, type Wear } from "./content";
 import type { Outfit } from "./player";
 import { has, save, state } from "./state";
 import { CHAPTERS, TASKS, checkTasks, isDone, taskProgress } from "./tasks";
+import { addLayer } from "./input";
 import * as ui from "./ui";
 import type { PhoneTab } from "./ui";
 
@@ -103,22 +104,21 @@ export class Phone {
       this.news.add(t);
       this.dots();
     });
-    addEventListener("keydown", (e) => this.key(e));
+    // telefono aperto: Esc o Tab lo chiudono, numeri e lettere cambiano scheda (il gioco sotto aspetta)
+    addLayer({ name: "telefono", priority: 50, modal: true, active: () => this.isOpen, key: (k, e) => this.key(k, e) });
   }
 
-  private key(e: KeyboardEvent) {
+  /** a telefono chiuso (dal livello "mondo"): Tab lo apre, M J Z aprono subito la scheda giusta; true = tasto usato */
+  shortcut(k: string, e: KeyboardEvent) {
+    const tab = k === "tab" ? this.tab : k === "m" ? "mappa" : k === "j" ? "diario" : k === "z" || k === "i" ? "zaino" : null;
+    if (!tab || e.repeat) return false;
+    e.preventDefault();
+    this.open(k === "tab" ? undefined : tab);
+    return true;
+  }
+
+  private key(k: string, e: KeyboardEvent) {
     if (e.repeat) return;
-    const k = e.key.toLowerCase();
-    const playing = document.body.classList.contains("playing");
-    if (!this.isOpen) {
-      // a telefono chiuso: Tab lo apre, M J Z aprono subito la scheda giusta
-      if (!playing || ui.busy) return;
-      const tab = k === "tab" ? this.tab : k === "m" ? "mappa" : k === "j" ? "diario" : k === "z" || k === "i" ? "zaino" : null;
-      if (!tab) return;
-      e.preventDefault();
-      this.open(k === "tab" ? undefined : tab);
-      return;
-    }
     if (k === "escape" || k === "tab") {
       e.preventDefault();
       this.close();

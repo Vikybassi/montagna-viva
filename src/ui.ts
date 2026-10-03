@@ -1,6 +1,7 @@
 import { sound } from "./audio";
 import { FACTS, ITEMS, PACK_SLOTS, SUMMITS, type Fact, type Topic } from "./content";
 import { SUBJECTS, SUBJECT_IDS } from "./nature";
+import { addLayer } from "./input";
 import { album, exportSave, importSave, notebook, state } from "./state";
 
 /**
@@ -139,13 +140,17 @@ export function say(speaker: string, text: string, options: string[] = ["Continu
     (box.firstElementChild as HTMLButtonElement | null)?.focus();
   });
 }
-addEventListener("keydown", (e) => {
-  if (!pending) return;
-  const n = Number(e.key);
-  const count = dlg.querySelectorAll(".opt").length;
-  // preventDefault: altrimenti lo stesso Invio "clicca" anche il primo pulsante del dialogo che si apre subito dopo
-  if (n >= 1 && n <= count) e.preventDefault(), pending(n - 1);
-  else if ((e.key === "Enter" || e.key === " " || e.key.toLowerCase() === "e") && count === 1) e.preventDefault(), pending(0);
+addLayer({
+  name: "dialogo", priority: 80, modal: true,
+  active: () => !!pending,
+  key: (k, e) => {
+    const n = Number(k);
+    const count = dlg.querySelectorAll(".opt").length;
+    // preventDefault: altrimenti lo stesso Invio "clicca" anche il primo pulsante del dialogo che si apre subito dopo
+    if (n >= 1 && n <= count) e.preventDefault(), pending!(n - 1);
+    else if ((k === "enter" || k === " " || k === "e") && count === 1 && !e.repeat) e.preventDefault(), pending!(0);
+    else if (k === "tab") trapFocus(dlg, e);
+  },
 });
 
 // ---------- pannelli (zaino da preparare, pausa, crediti) ----------
@@ -165,11 +170,13 @@ const closePanel = () => {
   panelOpen = false;
   refreshBusy();
 };
-addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && panelOpen && !packResolve) {
-    closePanel();
-    e.preventDefault(); // così lo stesso Esc non riapre subito la pausa
-  }
+addLayer({
+  name: "pannello", priority: 70, modal: true,
+  active: () => panelOpen,
+  key: (k, e) => {
+    if (k === "escape" && !packResolve) closePanel();
+    else if (k === "tab") trapFocus(panel, e);
+  },
 });
 
 const TOPICS: { id: Topic; name: string }[] = [
@@ -282,11 +289,14 @@ export function ringCall(speaker: string, onAnswer: () => void, onDecline: () =>
   ringTimer = window.setInterval(() => sound.ring(), 1400);
   (call.querySelector(".call-yes") as HTMLButtonElement).focus();
 }
-addEventListener("keydown", (e) => {
-  if (!answer || e.repeat) return;
-  const k = e.key.toLowerCase();
-  if (k === "e" || k === "enter") e.preventDefault(), answer();
-  else if (k === "escape") e.preventDefault(), decline?.();
+addLayer({
+  name: "telefonata", priority: 90, modal: true,
+  active: () => !!answer,
+  key: (k, e) => {
+    if (e.repeat) return;
+    if (k === "e" || k === "enter") e.preventDefault(), answer!();
+    else if (k === "escape") e.preventDefault(), decline?.();
+  },
 });
 
 // ---------- dentro un rifugio o un bivacco (al riparo dal temporale) ----------
@@ -506,14 +516,13 @@ export function openPause(o: PauseOpts) {
 }
 export const closeAnyPanel = () => panelOpen && closePanel();
 
-// il focus resta dentro dialoghi e pannelli (Tab e Maiusc+Tab girano tra i loro pulsanti)
-addEventListener("keydown", (e) => {
-  if (e.key !== "Tab") return;
-  const box = panelOpen ? panel : pending ? dlg : null;
-  if (!box) return;
+// il focus resta dentro dialoghi, pannelli e rifugio (Tab e Maiusc+Tab girano tra i loro pulsanti)
+function trapFocus(box: HTMLElement, e: KeyboardEvent) {
   const f = Array.from(box.querySelectorAll<HTMLElement>("button, input, select, a[href]")).filter((x) => !x.hasAttribute("disabled"));
+  e.preventDefault();
   if (!f.length) return;
   const i = f.indexOf(document.activeElement as HTMLElement);
-  e.preventDefault();
   f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
-});
+}
+// dentro il rifugio: i pulsanti dell'interno (niente salti, niente pausa sotto)
+addLayer({ name: "rifugio", priority: 60, modal: true, active: () => insideOpen, key: (k, e) => void (k === "tab" && trapFocus(inside, e)) });

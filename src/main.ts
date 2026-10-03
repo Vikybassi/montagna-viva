@@ -6,6 +6,7 @@ import { SunMap } from "./sunmap";
 import { setupPlay } from "./play";
 import { Boulder } from "./climb";
 import { sound } from "./audio";
+import { addLayer, held, onKeyUp, top as topLayer } from "./input";
 import { learn, loadProblem, wipeProgress } from "./state";
 import { Net, loadMe, saveMe } from "./net";
 import { PHRASES as ALL_PHRASES, randomName } from "./content";
@@ -113,27 +114,34 @@ const camTarget = new THREE.Vector3();
 const camPos = new THREE.Vector3();
 
 // ---------- comandi ----------
-const keys = new Set<string>();
-addEventListener("keydown", (e) => {
-  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
-  const k = e.key.toLowerCase();
-  keys.add(k);
-  if (!started || e.repeat) return;
-  // nel mirino: si guarda, si zooma, si scatta, si esce (il resto dei comandi aspetta)
-  if (finder) {
+const keys = held;
+// nel mirino: si guarda, si zooma, si scatta, si esce (il resto dei comandi aspetta)
+addLayer({
+  name: "mirino", priority: 40, modal: true,
+  active: () => started && !!finder,
+  key: (k, e) => {
+    if (e.repeat) return;
     if (k === "escape") exitFinder();
     else if (k === "p" || k === " " || k === "enter") shoot();
     else if (k === "+" || k === "=") zoomBy(1.4);
     else if (k === "-") zoomBy(1 / 1.4);
-    return;
-  }
-  if (k === "e" && !ui.busy) ui.triggerAct();
-  if (k === "escape" && !e.defaultPrevented && !ui.busy && !document.querySelector(".mini.on")) openPauseMenu();
-  if (k === "f" && play.climb?.active) play.climb.setShake(true);
-  if (k === " ") jumpOrGlide();
-  if (k === "p" && !play.blocked()) enterFinder();
-  if (k === "g" && !play.blocked()) say("👋 Ciao!");
-  if (k === "t" && !play.blocked()) void quickChat();
+  },
+});
+// in giro per la valle (o in parete)
+addLayer({
+  name: "mondo", priority: 0,
+  active: () => started,
+  key: (k, e) => {
+    if (e.repeat) return;
+    if (!ui.busy && document.body.classList.contains("playing") && play.phone.shortcut(k, e)) return;
+    if (k === "e" && !ui.busy) ui.triggerAct();
+    if (k === "escape" && !ui.busy) openPauseMenu();
+    if (k === "f" && play.climb?.active) play.climb.setShake(true);
+    if (k === " ") jumpOrGlide();
+    if (k === "p" && !play.blocked()) enterFinder();
+    if (k === "g" && !play.blocked()) say("👋 Ciao!");
+    if (k === "t" && !play.blocked()) void quickChat();
+  },
 });
 
 const PHRASES = ALL_PHRASES.filter((p) => p !== "👋 Ciao!");
@@ -147,11 +155,7 @@ function say(text: string) {
   ui.toast(`<b>Tu</b>: ${text}`);
   sound.ui("blip");
 }
-addEventListener("keyup", (e) => {
-  keys.delete(e.key.toLowerCase());
-  if (e.key.toLowerCase() === "f") play.climb?.setShake(false);
-});
-addEventListener("blur", () => keys.clear());
+onKeyUp((k) => k === "f" && play.climb?.setShake(false));
 
 const el = renderer.domElement;
 el.addEventListener("contextmenu", (e) => e.preventDefault()); // in parete anche il tasto destro prende la presa
@@ -424,7 +428,7 @@ function snapshot() {
 // prove automatiche: ?debug espone un teletrasporto e lo stato del gioco
 if (q.has("debug"))
   Object.assign(window, {
-    __mv: { ...play.debug, busy: () => ui.busy, started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
+    __mv: { ...play.debug, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
   });
 
 // le ombre delle montagne, lette da tutti i materiali (anche persone e animali appena aggiunti)
