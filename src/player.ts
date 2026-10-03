@@ -165,6 +165,8 @@ export class Hiker {
 
   /** "pavimento" in più oltre al terreno (il Sasso Remenno: ci si cammina sopra e non lo si attraversa) */
   groundFn: ((x: number, z: number) => number | null) | null = null;
+  /** gli ostacoli solidi (case, tronchi): riceve dove vorresti andare e restituisce dove puoi stare */
+  collide: ((x: number, z: number, y: number) => { x: number; z: number; stuck: boolean }) | null = null;
   groundAt(t: Terrain, x: number, z: number) {
     const g = t.heightAt(x, z), o = this.groundFn?.(x, z) ?? null;
     return o !== null && o > g ? o : g;
@@ -265,7 +267,13 @@ export class Hiker {
         this.heading += d * (1 - Math.exp(-12 * dt));
       } else if (!this.airborne) this.velocity.multiplyScalar(Math.exp(-12 * dt));
     }
-    const nx = p.x + this.velocity.x * dt, nz = p.z + this.velocity.y * dt;
+    let nx = p.x + this.velocity.x * dt, nz = p.z + this.velocity.y * dt;
+    // case e tronchi: non si attraversano, si scivola lungo il muro
+    if (this.collide) {
+      const c = this.collide(nx, nz, p.y);
+      if (c.stuck) (nx = p.x), (nz = p.z);
+      else (nx = c.x), (nz = c.z);
+    }
     const wall = this.groundAt(t, nx, nz) - p.y > 1.2 && !this.airborne; // una parete davanti (es. il masso): non si entra
     if (t.inside(nx, nz, 4) && !wall) {
       p.x = nx;

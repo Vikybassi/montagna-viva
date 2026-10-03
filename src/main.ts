@@ -5,6 +5,7 @@ import { Sky } from "./sky";
 import { SunMap } from "./sunmap";
 import { setupPlay } from "./play";
 import { Boulder } from "./climb";
+import { Obstacles } from "./collide";
 import { sound } from "./audio";
 import { addLayer, held, onKeyUp, top as topLayer } from "./input";
 import { learn, loadProblem, wipeProgress } from "./state";
@@ -64,6 +65,16 @@ const sky = new Sky(scene);
 // chi sei: nome e colore della giacca (ricordati nel browser)
 const me = loadMe();
 const hiker = new Hiker({ jacket: me.jacket });
+// case, rifugi, bivacchi, campanili e tronchi: non si attraversano (né a piedi né con la telecamera)
+const obstacles = new Obstacles();
+for (const s of [...places.solids, ...trees.solids]) obstacles.add(s);
+hiker.collide = (x, z, y) => {
+  if (!hiker.root.visible || play.indoors) return { x, z, stuck: false };
+  const r = obstacles.push(x, z, y, 0.35);
+  // se eri già incastrata (un salto, un viaggio veloce), meglio uscire comunque che restare ferma
+  if (r.stuck && obstacles.hits(hiker.root.position.x, hiker.root.position.z, y, 0.35)) r.stuck = false;
+  return r;
+};
 scene.add(hiker.root);
 
 // la frontale: si accende da sola quando fa buio (sempre nella scena, cambia solo l'intensità: niente ricompilazioni)
@@ -428,7 +439,7 @@ function snapshot() {
 // prove automatiche: ?debug espone un teletrasporto e lo stato del gioco
 if (q.has("debug"))
   Object.assign(window, {
-    __mv: { ...play.debug, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
+    __mv: { ...play.debug, obstacles, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
   });
 
 // le ombre delle montagne, lette da tutti i materiali (anche persone e animali appena aggiunti)
@@ -613,6 +624,14 @@ function frame() {
       const len = dir.length();
       const hit = rock.cast(camTarget.clone(), dir.normalize());
       if (hit && hit.point.distanceTo(camTarget) < len) camPos.copy(hit.point).addScaledVector(dir, -0.6);
+    }
+    // né nelle case: se un muro o un tetto è in mezzo, la telecamera si avvicina (davanti al muro)
+    if (!play.indoors) {
+      const dir = camPos.clone().sub(camTarget);
+      const len = dir.length();
+      dir.normalize();
+      const hitD = obstacles.cast(camTarget, dir, len);
+      if (hitD !== null) camPos.copy(camTarget).addScaledVector(dir, Math.max(0.5, hitD - 0.6));
     }
   }
   if (cinema) {

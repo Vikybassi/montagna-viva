@@ -41,7 +41,8 @@ export function setupPlay(c: PlayCtx) {
   engine.add("commissione", () => valley.encounters.errandQuest(people.custOmio.root.position));
   engine.add("missione", missions.missionQuest);
   const guidance = setupGuidance(w, engine, routes, climbing, racing);
-  const interactions = setupInteractions(w, [...missions.interacts, ...valley.interacts, ...storm.interacts, ...climbing.interacts], valley, (s) => void missions.observe(s), () => !!climbing.active());
+  const interacts = [...missions.interacts, ...valley.interacts, ...storm.interacts, ...climbing.interacts];
+  const interactions = setupInteractions(w, interacts, valley, (s) => void missions.observe(s), () => !!climbing.active());
 
   // ---------- fiato ----------
   let stamina = 1, exhausted = false, runToggle = false;
@@ -67,7 +68,7 @@ export function setupPlay(c: PlayCtx) {
 
   return {
     /** solo per le prove automatiche (?debug) */
-    debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, pickHut: routes.pickHut, guide: () => routes.guide },
+    debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, interacts, pickHut: routes.pickHut, guide: () => routes.guide },
     get runToggle() {
       return runToggle;
     },
@@ -134,6 +135,10 @@ export function setupPlay(c: PlayCtx) {
       },
     },
     hasLamp: () => has("frontale"),
+    /** dentro un rifugio o un bivacco (o mentre entri dalla porta) */
+    get indoors() {
+      return storm.indoors;
+    },
     update(dt: number) {
       phone.update(dt);
       storm.update(dt);
