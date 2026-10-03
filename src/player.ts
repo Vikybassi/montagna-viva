@@ -49,7 +49,8 @@ export class Hiker {
 
   /** i colori si possono cambiare: così la stessa figura fa anche la guida, i custodi e la glaciologa */
   constructor(look: Partial<Record<"jacket" | "pants" | "skin" | "hat" | "pack" | "hair", string>> = {}) {
-    const m = (color: string, rough = 0.8) => new THREE.MeshStandardMaterial({ color, roughness: rough, flatShading: true });
+    // superfici morbide (niente sfaccettature): personaggi da cartone, come in Coastal World
+    const m = (color: string, rough = 0.8) => new THREE.MeshStandardMaterial({ color, roughness: rough });
     const L = { jacket: "#c2375a", pants: "#3b3550", skin: "#f0c3a6", hat: "#f2b632", pack: "#2f8f8a", hair: "#8a5a3a", ...look };
     const jacket = m(L.jacket, 0.6), pants = m(L.pants), skin = m(L.skin), boot = m("#4a3427"), hat = m(L.hat), pack = m(L.pack, 0.7), hair = m(L.hair);
     this.mats = { jacket, hat };
@@ -86,7 +87,9 @@ export class Hiker {
     const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.18, 3, 6), hair);
     tail.position.set(0, 1.5, -0.17);
     tail.rotation.x = 0.4;
-    const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.24), pack);
+    // lo zaino: arrotondato, come un sacco morbido
+    const backpack = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.16, 4, 12), pack);
+    backpack.scale.set(1.05, 1, 0.62);
     backpack.position.set(0, 1.18, -0.27);
     const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.42, 8), m("#f4e4de"));
     roll.rotation.z = Math.PI / 2;
@@ -155,7 +158,15 @@ export class Hiker {
       poles.push(pole, grip);
     }
     this.gear = { beanie: [beanie, pom], sun: [sunHat], band: [band], glasses: [glasses], bandana: [bandana], poles, pack: [backpack, roll], climb: [helmet, harness, loop] };
-    this.body.add(face, this.legL, this.legR, torso, this.armL, this.armR, head, beanie, pom, tail, backpack, roll, helmet, harness, loop, sunHat, band, glasses, bandana);
+    // la testa più grande (stile cartone): faccia, capelli, cappelli, occhiali e casco crescono con lei, dal collo
+    const headGroup = new THREE.Group();
+    headGroup.position.y = 1.45;
+    headGroup.scale.setScalar(1.35);
+    for (const o of [face, head, beanie, pom, tail, helmet, sunHat, band, glasses]) {
+      o.position.y -= 1.45;
+      headGroup.add(o);
+    }
+    this.body.add(headGroup, this.legL, this.legR, torso, this.armL, this.armR, backpack, roll, harness, loop, bandana);
     this.applyGear();
     this.body.traverse((o) => ((o as THREE.Mesh).castShadow = true));
     this.root.add(this.body);

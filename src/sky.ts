@@ -27,8 +27,9 @@ const KEYS: Key[] = [
   { el: -7, zenith: "#1c1735", horizon: "#5a2f55", light: "#a99ad6", li: 0.35, hemiSky: "#5a4a80", hemiGround: "#221a28", hi: 0.6 },
   { el: -1, zenith: "#3a2f63", horizon: "#e07d72", light: "#ff7f6a", li: 1.1, hemiSky: "#7a5f92", hemiGround: "#33252c", hi: 0.45 },
   { el: 5, zenith: "#5a63a0", horizon: "#f6b48f", light: "#ffa277", li: 2.6, hemiSky: "#b39ab8", hemiGround: "#4a3d36", hi: 0.55 },
-  { el: 15, zenith: "#5f86c0", horizon: "#f1d6bd", light: "#ffd9b0", li: 2.4, hemiSky: "#b9cde6", hemiGround: "#5e6a45", hi: 0.85 },
-  { el: 40, zenith: "#4f86c6", horizon: "#cfe2ee", light: "#fff3e0", li: 2.8, hemiSky: "#bcd6ee", hemiGround: "#62704a", hi: 0.9 },
+  // di giorno, come in un cartone: cielo azzurro pulito, luce calda e ombre lilla-azzurre (le schiarisce il cielo)
+  { el: 15, zenith: "#4f9de6", horizon: "#f3dcc4", light: "#ffe1b8", li: 2.2, hemiSky: "#b8c4ff", hemiGround: "#7d8a5a", hi: 1.45 },
+  { el: 40, zenith: "#3d9ae8", horizon: "#c4e7fb", light: "#fff4e2", li: 2.4, hemiSky: "#b3c6ff", hemiGround: "#80915c", hi: 1.6 },
 ];
 
 export class Sky {
@@ -98,6 +99,8 @@ export class Sky {
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.bias = -0.0004;
     this.sun.shadow.normalBias = 0.6;
+    // ombre trasparenti, non nere: sotto si vede ancora il colore del prato (come in un cartone)
+    this.sun.shadow.intensity = 0.6;
   }
 
   private mix(field: "zenith" | "horizon" | "light" | "hemiSky" | "hemiGround", el: number, out: THREE.Color) {
