@@ -450,6 +450,14 @@ body:not(.playing) .netpill { display: none; }
 /* ---------- fotocamera: mirino, pulsante, taccuino ---------- */
 .tools .camerabtn { display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border-radius: 50%; }
 .camerabtn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+/* la borraccia: l'acqua che resta sale e scende dentro il pulsante; con la sete pulsa piano */
+.tools .drinkbtn { position: relative; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border-radius: 50%; overflow: hidden; }
+.tools .drinkbtn[hidden] { display: none; }
+.drinkbtn svg { position: relative; z-index: 1; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.drink-lvl { position: absolute; inset: auto 0 0 0; height: calc(var(--lvl, 1) * 100%); background: rgba(90, 166, 191, 0.35); transition: height 0.4s; }
+.drinkbtn.thirsty { animation: thirst 1.6s ease-in-out infinite; }
+@keyframes thirst { 50% { box-shadow: 0 0 0 6px rgba(90, 166, 191, 0.45); } }
+@media (prefers-reduced-motion: reduce) { .drinkbtn.thirsty { animation: none; outline: 3px solid #5aa6bf; } }
 .finder { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.25s; }
 .finder.on { opacity: 1; }
 .finder .fc { position: absolute; width: 48px; height: 48px; border: 4px solid #fff; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }

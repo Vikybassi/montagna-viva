@@ -403,7 +403,7 @@ const top = el("div", "topbtns");
 top.innerHTML = `<button type="button" data-k="sound" class="soundbtn" aria-pressed="true" aria-label="Suono">♪</button><button type="button" data-k="pause" aria-label="Pausa e impostazioni">☰</button>`;
 root.appendChild(top);
 const bar = el("div", "tools");
-bar.innerHTML = `<button type="button" data-k="camera" class="camerabtn" aria-label="Fotocamera (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-k="jump" class="touchbtn">Salta / Vola</button><button type="button" data-k="run" class="runbtn" aria-pressed="false">Corri</button><button type="button" data-k="phone" class="miniphone" aria-label="Apri il telefono (Tab)"><span class="mp-screen"><b class="mp-time">14:00</b></span><i class="mp-dot" aria-hidden="true"></i><span class="mp-wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cairn"/></svg><b class="mp-ometti">0</b><span class="sr">ometti</span></span></button>`;
+bar.innerHTML = `<button type="button" data-k="camera" class="camerabtn" aria-label="Fotocamera (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-k="jump" class="touchbtn">Salta / Vola</button><button type="button" data-k="run" class="runbtn" aria-pressed="false">Corri</button><button type="button" data-k="drink" class="drinkbtn" aria-label="Bevi un sorso (B)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v3l2 2v13a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7l2-2z"/></svg><i class="drink-lvl" aria-hidden="true"></i></button><button type="button" data-k="phone" class="miniphone" aria-label="Apri il telefono (Tab)"><span class="mp-screen"><b class="mp-time">14:00</b></span><i class="mp-dot" aria-hidden="true"></i><span class="mp-wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cairn"/></svg><b class="mp-ometti">0</b><span class="sr">ometti</span></span></button>`;
 root.appendChild(bar);
 export const tools = {
   onPhone: () => {},
@@ -412,6 +412,7 @@ export const tools = {
   onResume: (_id: string) => {},
   onCamera: () => {},
   onRun: () => {},
+  onDrink: () => {},
   onJump: () => {},
   onSound: () => {},
   onPause: () => {},
@@ -422,12 +423,21 @@ for (const b of [top, bar])
     if (k === "phone") tools.onPhone();
     if (k === "camera") tools.onCamera();
     if (k === "run") tools.onRun();
+    if (k === "drink") tools.onDrink();
     if (k === "jump") tools.onJump();
     if (k === "sound") tools.onSound();
     if (k === "pause") tools.onPause();
   });
 export function setSoundToggle(on: boolean) {
   top.querySelector(".soundbtn")!.setAttribute("aria-pressed", String(on));
+}
+/** la borraccia nel pulsante: quanta acqua resta (null = non c'è la borraccia) e se hai sete */
+export function setWater(level: number | null, thirsty: boolean) {
+  const b = bar.querySelector<HTMLButtonElement>(".drinkbtn")!;
+  b.hidden = level === null && !thirsty;
+  b.style.setProperty("--lvl", String(level ?? 0));
+  b.classList.toggle("thirsty", thirsty);
+  b.setAttribute("aria-label", level === null ? "Bevi (non hai la borraccia)" : `Bevi un sorso (B) · borraccia ${Math.round(level * 100)}%`);
 }
 export function setRunToggle(on: boolean) {
   bar.querySelector(".runbtn")!.setAttribute("aria-pressed", String(on));
@@ -481,7 +491,7 @@ export function openPause(o: PauseOpts) {
     <h3>Comandi</h3>
     <ul class="keys">
       <li><kbd>W A S D</kbd> o frecce: cammina</li><li><kbd>Shift</kbd>: corri</li><li><kbd>Spazio</kbd>: salta; in aria apre il parapendio</li>
-      <li><kbd>Q</kbd> <kbd>R</kbd>: gira la telecamera (o trascina col mouse)</li><li><kbd>E</kbd>: parla, osserva, raccogli</li>
+      <li><kbd>Q</kbd> <kbd>R</kbd>: gira la telecamera (o trascina col mouse)</li><li><kbd>E</kbd>: parla, osserva, raccogli</li><li><kbd>B</kbd>: bevi un sorso dalla borraccia</li>
       <li><kbd>Tab</kbd> telefono: missioni, mappa (<kbd>M</kbd>), diario (<kbd>J</kbd>), zaino (<kbd>Z</kbd>), spille, armadio (o <kbd>1</kbd>–<kbd>6</kbd>) · <kbd>P</kbd> foto</li><li><kbd>G</kbd> saluta · <kbd>T</kbd> messaggio · <kbd>Esc</kbd> pausa</li>
       <li>In parete: clic sulla presa (la gialla è il prossimo passo; o le direzioni) · <kbd>F</kbd> scuoti le braccia · <kbd>Spazio</kbd> «Calami!»</li>
     </ul>

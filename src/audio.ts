@@ -261,6 +261,13 @@ export class Sound {
     this.heliPan?.pan.setTargetAtTime(this.panValue(x, z), c.currentTime, 0.2);
     this.heliSeen = c.currentTime;
   }
+  /** un sorso: due "glu" bassi */
+  gulp() {
+    const c = this.ctx;
+    if (!c) return;
+    const out = this.pan(), t = c.currentTime + 0.35;
+    for (let i = 0; i < 2; i++) this.tone("sine", 260, 140, t + i * 0.28, 0.12, 0.12, out);
+  }
   /** la suoneria del telefono: due note alternate, come un vecchio squillo */
   ring() {
     const c = this.ctx;

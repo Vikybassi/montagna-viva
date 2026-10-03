@@ -32,7 +32,11 @@ sola, muri veri, orologio che può saltare senza rompere niente.
 - Rifare una missione già fatta (dal menu di Marta) riparte da zero; prima i passi risultavano già tutti fatti e
   l'obiettivo in alto restava vuoto. I salvataggi rimasti bloccati così si sbloccano da soli.
 - Nel telefono le missioni iniziate e lasciate a metà hanno il pulsante «Riprendi».
-- 10 prove nel browser.
+- **Bere**: borraccia con sette sorsi (<kbd>B</kbd> o il pulsante, che mostra quanta acqua resta), sete che cresce
+  camminando, di più correndo e in salita; con tanta sete il fiato dura meno e un avviso invita a bere. Fontane nei
+  paesi e acqua ai rifugi; vicino a un torrente si impara che l'acqua limpida non è per forza potabile. Due voci nuove
+  nel diario.
+- 11 prove nel browser.
 
 **Dentro**
 

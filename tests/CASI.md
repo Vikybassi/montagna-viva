@@ -4,7 +4,7 @@ Le situazioni strane che il gioco deve reggere, ognuna con la prova che la contr
 `unit` = `npm test` (Vitest, `tests/unit/`), `e2e` = `npm run test:e2e` (Chrome, `tests/e2e/`).
 Quando si corregge un bug, si aggiunge qui la riga e la prova che lo tiene lontano.
 
-Stato al 3 ottobre 2026 (M1): **tutti verdi** — 53 prove unit, 10 prove e2e (anche in grafica software, come su GitHub).
+Stato al 3 ottobre 2026 (M1): **tutti verdi** — 57 prove unit, 11 prove e2e (anche in grafica software, come su GitHub).
 Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco fa pochi fotogrammi al secondo.
 
 ## Salvataggi
@@ -67,6 +67,7 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 |---|------|---------------------|-------|
 | 26b | In parete, presa dopo presa | Braccia e gambe mai incrociate: ogni arto va dal lato della sua spalla o anca (il modello aveva i lati scambiati) | e2e `boulder` |
 | 26d | I suoni registrati | Tutti e 34 scaricati e decodificati; se uno manca il gioco va avanti senza | e2e `smoke` |
+| 26e | Bere | Senza borraccia, B lo dice; un sorso toglie la sete e ridà fiato (sette sorsi); fontane e rifugi riempiono; con la borraccia vuota vicino a un torrente si impara che l'acqua limpida non è per forza buona | unit `thirst`, e2e `drink` |
 | 26c | Una foto nuova | Puntino sulla scheda Foto; album e taccuino nel telefono; un tocco ingrandisce, Esc richiude solo la foto | e2e `photo` |
 
 ## Tempo e meteo (l'orologio che salta)

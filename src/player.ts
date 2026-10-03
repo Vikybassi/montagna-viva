@@ -165,6 +165,18 @@ export class Hiker {
 
   /** "pavimento" in più oltre al terreno (il Sasso Remenno: ci si cammina sopra e non lo si attraversa) */
   groundFn: ((x: number, z: number) => number | null) | null = null;
+  /** sta bevendo (secondi che restano): la mano porta la borraccia alla bocca */
+  private drinking = 0;
+  private bottle: THREE.Mesh | null = null;
+  drink() {
+    this.drinking = 1.3;
+    if (!this.bottle) {
+      this.bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.2, 8), new THREE.MeshStandardMaterial({ color: "#3b8fb0", roughness: 0.4, metalness: 0.3 }));
+      this.bottle.position.set(0, -0.44, 0.07);
+      this.armR.add(this.bottle);
+    }
+    this.bottle.visible = true;
+  }
   /** quanto vicino al bordo della mappa si può arrivare (unità di gioco) */
   worldMargin = 4;
   /** gli ostacoli solidi (case, tronchi): riceve dove vorresti andare e restituisce dove puoi stare */
@@ -441,5 +453,13 @@ export class Hiker {
     this.armR.rotation.z = this.swimming ? stroke * 0.6 : 0;
     this.body.position.y = Math.abs(Math.cos(this.phase)) * 0.06 * amt;
     this.body.rotation.x = amt * (this.speed > 10 ? 0.2 : 0.06);
+    // un sorso: il braccio sale, la borraccia alla bocca, poi giù
+    if (this.drinking > 0) {
+      this.drinking -= dt;
+      const k = Math.min(1, Math.min(1.3 - this.drinking, this.drinking) / 0.3);
+      this.armR.rotation.x = THREE.MathUtils.lerp(this.armR.rotation.x, -2.05, k);
+      this.armR.rotation.z = THREE.MathUtils.lerp(0, -0.55, k); // verso il centro: la mano alla bocca
+      if (this.drinking <= 0 && this.bottle) this.bottle.visible = false;
+    }
   }
 }

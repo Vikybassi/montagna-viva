@@ -14,6 +14,7 @@ import { createPeople, setupMissions } from "./game/people";
 import { QuestEngine } from "./game/quests";
 import { setupRoutes } from "./game/routes";
 import { createWeather, setupStorm } from "./game/storm";
+import { setupWater } from "./game/water";
 import { setupValley } from "./game/valley";
 
 /**
@@ -34,6 +35,7 @@ export function setupPlay(c: PlayCtx) {
   const racing = () => race.phase === "running" || race.phase === "countdown";
   const missions = setupMissions(w, people, valley);
   const storm = setupStorm(w, routes, valley, () => !!climbing.active() || racing());
+  const water = setupWater(w, valley);
 
   // il motore delle missioni: il temporale prima di tutto, poi commissione o missione (quella che segui)
   const engine = new QuestEngine();
@@ -41,11 +43,18 @@ export function setupPlay(c: PlayCtx) {
   engine.add("commissione", () => valley.encounters.errandQuest(people.custOmio.root.position));
   engine.add("missione", missions.missionQuest);
   const guidance = setupGuidance(w, engine, routes, climbing, racing);
-  const interacts = [...missions.interacts, ...valley.interacts, ...storm.interacts, ...climbing.interacts];
+  const interacts = [...missions.interacts, ...valley.interacts, ...storm.interacts, ...water.interacts, ...climbing.interacts];
   const interactions = setupInteractions(w, interacts, valley, (s) => void missions.observe(s), () => !!climbing.active());
 
   // ---------- fiato ----------
   let stamina = 1, exhausted = false, runToggle = false;
+  /** un sorso: torna un po' di fiato */
+  const drink = () => {
+    if (ui.busy || mini.playing || climbing.active()) return;
+    if (water.drink()) stamina = Math.min(1, stamina + 0.35);
+  };
+  ui.tools.onDrink = drink;
+  ui.setWater(has("acqua") ? state.water : null, state.thirst >= 0.7);
   ui.tools.onRun = () => {
     runToggle = !runToggle;
     ui.setRunToggle(runToggle);
@@ -97,16 +106,18 @@ export function setupPlay(c: PlayCtx) {
   return {
     welcomeBack,
     /** solo per le prove automatiche (?debug) */
-    debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, interacts, pickHut: routes.pickHut, guide: () => routes.guide },
+    debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, interacts, thirst: water.debug, fountains: water.fountains, pickHut: routes.pickHut, guide: () => routes.guide },
     get runToggle() {
       return runToggle;
     },
     /** chi chiede di correre e se può farlo, con il fiato */
     canRun(wantRun: boolean, moving: boolean, dt: number) {
       const running = wantRun && moving && !exhausted;
-      const regen = has("acqua") ? 1.3 : 1;
+      water.update(dt, moving, running);
+      // con tanta sete il fiato dura meno e torna più piano
+      const thirsty = water.thirsty;
       // circa 25 secondi di corsa a fiato pieno; si recupera camminando (in 10 s) o da fermi (in 4 s)
-      stamina += running ? -dt / 25 : (dt / (moving ? 10 : 4)) * regen;
+      stamina += running ? (-dt / 25) * (thirsty ? 1.6 : 1) : (dt / (moving ? 10 : 4)) * (thirsty ? 0.6 : 1);
       stamina = THREE.MathUtils.clamp(stamina, 0, 1);
       if (stamina <= 0) exhausted = true;
       if (exhausted && stamina > 0.25) exhausted = false;
@@ -164,6 +175,7 @@ export function setupPlay(c: PlayCtx) {
       },
     },
     hasLamp: () => has("frontale"),
+    drink,
     /** dentro un rifugio o un bivacco (o mentre entri dalla porta) */
     get indoors() {
       return storm.indoors;

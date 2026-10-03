@@ -154,6 +154,7 @@ addLayer({
     if (k === "f" && play.climb?.active) play.climb.setShake(true);
     if (k === " ") jumpOrGlide();
     if (k === "p" && !play.blocked()) enterFinder();
+    if (k === "b" && !play.blocked()) play.drink();
     if (k === "g" && !play.blocked()) say("👋 Ciao!");
     if (k === "t" && !play.blocked()) void quickChat();
   },

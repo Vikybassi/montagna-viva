@@ -137,7 +137,7 @@ export function setupValley(w: World) {
 
   let eagleCall = 10, finishShown = 0, tick = 0, lastMark = -1, cowsSeen = state.diary.includes("mucche");
   return {
-    skyEvents, sawEvent, encounters, nature, cairnSet, signs, fauna, glacier, race, raceStart, life, collect, interacts,
+    skyEvents, sawEvent, encounters, nature, cairnSet, signs, fauna, glacier, race, raceStart, life, collect, interacts, waterDist,
     /** a ogni fotogramma: animali, vita, eventi del cielo, suoni, corsa */
     update(dt: number) {
       const me = hiker.root.position;
