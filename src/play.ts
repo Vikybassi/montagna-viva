@@ -86,7 +86,10 @@ export function setupPlay(c: PlayCtx) {
    * Al rientro nel gioco: se c'era qualcosa in corso, lo si dice (e il prossimo passo), e si sceglie se continuare o
    * metterlo in pausa. Così l'obiettivo in alto non sembra arrivato dal nulla.
    */
+  // cosa c'era in corso nel salvataggio, al caricamento (non quello scelto nei primi istanti di gioco)
+  const resumed = !!(state.active || state.errand);
   async function welcomeBack() {
+    if (!resumed || ui.busy) return;
     const { tracked, trackedKind } = engine.pick(state.followErrand, racing());
     if (!tracked || trackedKind === "emergenza" || !state.packed) return;
     const next = QuestEngine.current(tracked);
