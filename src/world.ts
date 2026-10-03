@@ -301,9 +301,17 @@ export function buildSkirt(t: Terrain) {
 export const edgeDistance = (t: Terrain, x: number, z: number) => Math.min(x, z, t.width - x, t.depth - z);
 
 /** Nastro che segue il terreno lungo una linea (sentieri, torrenti). */
-function ribbon(t: Terrain, lines: Pt[][], width: number, lift: number, color: THREE.Color, every = 4) {
+function ribbon(t: Terrain, lines: Pt[][], width: number | ((x: number, z: number) => number), lift: number, color: THREE.Color, every = 4) {
+  const wAt = typeof width === "number" ? () => width : width;
   const P: number[] = [], I: number[] = [];
-  for (const line of lines) {
+  for (const raw of lines) {
+    // via i punti troppo vicini (meno di 2,5 unità): nei tornantini fitti il nastro faceva una scaletta
+    const line: Pt[] = [];
+    for (const q of raw) {
+      const l = line[line.length - 1];
+      if (!l || Math.hypot(q[0] - l[0], q[1] - l[1]) * S >= 2.5) line.push(q);
+    }
+    if (raw.length > 1 && line.length < 2) line.push(raw[raw.length - 1]);
     // infittisce in unità di gioco
     const pts: THREE.Vector2[] = [];
     for (let i = 0; i < line.length - 1; i++) {
@@ -318,7 +326,8 @@ function ribbon(t: Terrain, lines: Pt[][], width: number, lift: number, color: T
     for (let i = 0; i < pts.length; i++) {
       const p = pts[i], q = pts[Math.min(pts.length - 1, i + 1)], o = pts[Math.max(0, i - 1)];
       const dir = q.clone().sub(o).normalize();
-      const nx = -dir.y * width * 0.5, nz = dir.x * width * 0.5;
+      const wd = wAt(p.x, p.y);
+      const nx = -dir.y * wd * 0.5, nz = dir.x * wd * 0.5;
       for (const s of [1, -1]) {
         const x = p.x + nx * s, z = p.y + nz * s;
         P.push(x, t.heightAt(x, z) + lift, z);
@@ -328,6 +337,13 @@ function ribbon(t: Terrain, lines: Pt[][], width: number, lift: number, color: T
         I.push(v, v + 1, v + 2, v + 1, v + 3, v + 2);
       }
     }
+  }
+  // tutti i triangoli con la faccia verso l'alto: il verso dipende da come è disegnata la linea nei dati (prima metà
+  // dei sentieri, quelli disegnati "al contrario", non si vedeva)
+  for (let i = 0; i < I.length; i += 3) {
+    const a = I[i] * 3, b = I[i + 1] * 3, c = I[i + 2] * 3;
+    const cross = (P[b + 2] - P[a + 2]) * (P[c] - P[a]) - (P[b] - P[a]) * (P[c + 2] - P[a + 2]);
+    if (cross < 0) [I[i + 1], I[i + 2]] = [I[i + 2], I[i + 1]];
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
@@ -342,14 +358,61 @@ function ribbon(t: Terrain, lines: Pt[][], width: number, lift: number, color: T
   return mesh;
 }
 
+/**
+ * Sentieri, mulattiere e strade come in un cartone: chiari, con un bordo morbido verso il prato (un nastro più largo e
+ * più verde sotto), più larghi vicino ai paesi. Restituisce anche `near`: quanto sei lontana dal bordo del sentiero più
+ * vicino (serve a non far crescere erba e cespugli sopra).
+ */
 export function buildTrails(t: Terrain, data: WorldData) {
   const group = new THREE.Group();
-  group.add(ribbon(t, data.paths.filter((p) => p.k === "p" || p.k === "a").map((p) => p.pts), 1.3, 0.35, new THREE.Color("#d8c39a")));
-  group.add(ribbon(t, data.paths.filter((p) => p.k === "r").map((p) => p.pts), 2.6, 0.4, new THREE.Color("#7d7a80")));
-  group.add(ribbon(t, data.paths.filter((p) => p.k === "t").map((p) => p.pts), 2.2, 0.35, new THREE.Color("#c9b48c")));
+  const villages = data.huts.filter((h) => h.kind === "paese").map((h) => [h.p[0] * S, h.p[1] * S] as const);
+  // vicino a un paese (entro 160 unità) i sentieri si allargano piano piano
+  const town = (x: number, z: number) => {
+    let d = Infinity;
+    for (const [vx, vz] of villages) d = Math.min(d, Math.hypot(vx - x, vz - z));
+    return 1 - THREE.MathUtils.smoothstep(d, 40, 160);
+  };
+  const KIND = {
+    p: { w: 1.7, wt: 2.6, c: "#e6d6ae", e: "#bdd08a" },
+    a: { w: 1.7, wt: 2.6, c: "#e6d6ae", e: "#bdd08a" },
+    t: { w: 2.4, wt: 3.2, c: "#ddcca4", e: "#b9cc86" },
+    r: { w: 3.0, wt: 3.6, c: "#b9b6bd", e: "#a9b98e" },
+  } as const;
+  const lines = { p: [] as Pt[][], a: [] as Pt[][], t: [] as Pt[][], r: [] as Pt[][] };
+  for (const p of data.paths) lines[p.k].push(p.pts);
+  for (const k of ["r", "t", "p", "a"] as const) {
+    const K = KIND[k], width = (x: number, z: number) => THREE.MathUtils.lerp(K.w, K.wt, town(x, z));
+    group.add(ribbon(t, lines[k], (x, z) => width(x, z) + 1.1, 0.3, new THREE.Color(K.e)));
+    group.add(ribbon(t, lines[k], width, 0.36, new THREE.Color(K.c)));
+  }
+  // indice dei sentieri: punti ogni 2 unità con la loro mezza larghezza, in celle da 8 unità
+  const CELL = 8, grid = new Map<number, number[]>();
+  for (const k of ["r", "t", "p", "a"] as const)
+    for (const line of lines[k])
+      for (let i = 0; i < line.length - 1; i++) {
+        const ax = line[i][0] * S, az = line[i][1] * S, bx = line[i + 1][0] * S, bz = line[i + 1][1] * S;
+        const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 2));
+        for (let j = 0; j <= n; j++) {
+          const x = ax + ((bx - ax) * j) / n, z = az + ((bz - az) * j) / n;
+          const key = Math.floor(x / CELL) * 100003 + Math.floor(z / CELL);
+          const hw = (THREE.MathUtils.lerp(KIND[k].w, KIND[k].wt, town(x, z)) + 1.1) / 2;
+          (grid.get(key) ?? grid.set(key, []).get(key)!).push(x, z, hw);
+        }
+      }
+  /** distanza dal bordo del sentiero più vicino (negativa se ci sei sopra); Infinity se non ce n'è uno vicino */
+  const near = (x: number, z: number) => {
+    let best = Infinity;
+    const cx = Math.floor(x / CELL), cz = Math.floor(z / CELL);
+    for (let i = -1; i <= 1; i++)
+      for (let j = -1; j <= 1; j++) {
+        const a = grid.get((cx + i) * 100003 + cz + j);
+        if (a) for (let k = 0; k < a.length; k += 3) best = Math.min(best, Math.hypot(a[k] - x, a[k + 1] - z) - a[k + 2]);
+      }
+    return best;
+  };
   group.add(ribbon(t, data.streams.filter((s) => !s.r).map((s) => s.pts), 1.1, 0.25, new THREE.Color("#5f9db3")));
   group.add(ribbon(t, data.streams.filter((s) => s.r).map((s) => s.pts), 4, 0.3, new THREE.Color("#4f8fa6")));
-  return group;
+  return { group, near };
 }
 
 /** Gli specchi d'acqua: piatti al livello del lago, con increspature animate, riflesso del cielo e un po' di trasparenza. */
