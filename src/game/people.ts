@@ -4,7 +4,7 @@ import { ITEMS, MISSIONS, type MissionId } from "../content";
 import type { Species } from "../fauna";
 import type { Year } from "../glacier";
 import { Hiker } from "../player";
-import { has, learn, mission, nextMorning, save, setMission, state } from "../state";
+import { finishMission, has, learn, mission, nextMorning, save, setMission, state } from "../state";
 import * as ui from "../ui";
 import { STILL, SUNSET, dur, hhmm, isDaylight, type Interact, type World } from "./base";
 import type { Quest } from "./quests";
@@ -39,6 +39,10 @@ export function setupMissions(w: World, people: People, v: Valley) {
   const { fauna, glacier, race, raceStart, signs, encounters } = v;
   let rientroStage: "up" | "down" = "up";
   const seenYears = new Set<Year>();
+  // gli animali visti in questa missione: rifacendola si ricomincia da capo (la prima volta valgono anche quelli di prima)
+  const faunaNow = new Set<Species>();
+  let faunaReplay = false;
+  const seenFauna = (s: Species) => (faunaReplay ? faunaNow.has(s) : state.seen.includes(s));
 
   // punti di osservazione: a distanza rispettosa dagli animali (mai addosso), dalla parte del rifugio più vicino
   const lookout = (center: THREE.Vector3, toward: THREE.Vector3, dist: number) => {
@@ -64,18 +68,17 @@ export function setupMissions(w: World, people: People, v: Valley) {
           steps: [
             { text: `Sali al Rifugio Omio (2100 m) seguendo la strada arancione`, done: !up, pos: custOmio.root.position, name: "Rifugio Omio" },
             { text: "Parla con Giulio, il custode (E), e decidi come tornare", done: !up },
-            { text: `Torna a San Martino prima delle ${hhmm(SUNSET)}`, done: mission("rientro") === "done", pos: up ? null : at(martino), name: "San Martino" },
+            { text: `Torna a San Martino prima delle ${hhmm(SUNSET)}`, done: false, pos: up ? null : at(martino), name: "San Martino" },
           ],
         };
       }
       case "fauna": {
-        const seen = (s: Species) => state.seen.includes(s);
         return {
           title: "Occhi da guardiaparco",
           steps: [
-            { text: "Stambecchi: sulle rocce sotto il Rifugio Ponti. Fermati a 20–70 m e premi E", done: seen("stambecco"), pos: ibexSpot, name: "Stambecchi" },
-            { text: "Marmotte: sui pascoli alti. Avvicinati piano, fermati quando fischiano", done: seen("marmotta"), pos: marmotNear(), name: "Marmotte" },
-            { text: "Aquila reale: gira sopra le pareti della Val di Mello. Guardala da sotto (E)", done: seen("aquila"), pos: w.ground(eagleAt), name: "Aquila" },
+            { text: "Stambecchi: sulle rocce sotto il Rifugio Ponti. Fermati a 20–70 m e premi E", done: seenFauna("stambecco"), pos: ibexSpot, name: "Stambecchi" },
+            { text: "Marmotte: sui pascoli alti. Avvicinati piano, fermati quando fischiano", done: seenFauna("marmotta"), pos: marmotNear(), name: "Marmotte" },
+            { text: "Aquila reale: gira sopra le pareti della Val di Mello. Guardala da sotto (E)", done: seenFauna("aquila"), pos: w.ground(eagleAt), name: "Aquila" },
           ],
         };
       }
@@ -83,9 +86,9 @@ export function setupMissions(w: World, people: People, v: Valley) {
         return {
           title: "Il ghiacciaio nel tempo",
           steps: [
-            { text: "Raggiungi Elena al Piano di Preda Rossa (strada arancione)", done: seenYears.size > 0 || mission("ghiacciaio") === "done", pos: elena.root.position, name: "Elena" },
-            { text: "Parla con Elena (E) e guarda il ghiacciaio nel 1850", done: seenYears.has(1850) || mission("ghiacciaio") === "done" },
-            { text: "Ora guarda lo scenario 2050", done: seenYears.has(2050) || mission("ghiacciaio") === "done" },
+            { text: "Raggiungi Elena al Piano di Preda Rossa (strada arancione)", done: seenYears.size > 0, pos: elena.root.position, name: "Elena" },
+            { text: "Parla con Elena (E) e guarda il ghiacciaio nel 1850", done: seenYears.has(1850) },
+            { text: "Ora guarda lo scenario 2050", done: seenYears.has(2050) },
           ],
         };
       case "corsa": {
@@ -137,6 +140,9 @@ export function setupMissions(w: World, people: People, v: Valley) {
   }
 
   async function startMission(m: MissionId) {
+    // rifare una missione già fatta riparte da zero (prima i passi risultavano già tutti fatti e non c'era più niente da seguire)
+    if (m === "fauna") (faunaReplay = mission("fauna") === "done"), faunaNow.clear();
+    if (m === "ghiacciaio") seenYears.clear();
     setMission(m, mission(m) === "done" ? "done" : "active");
     state.active = m;
     save();
@@ -158,7 +164,7 @@ export function setupMissions(w: World, people: People, v: Valley) {
     if (await encounters.deliver("omio")) return;
     const h = c.getHours();
     const down = 1.75; // ore per scendere a San Martino (circa, con i tempi CAI)
-    if (state.active !== "rientro" || mission("rientro") === "done") {
+    if (state.active !== "rientro") {
       await ui.say("Giulio, custode", "Benvenuta all'Omio! Da qui si vede tutta la Val Masino. Se domani fai il Sentiero Roma, parti presto: i temporali, d'estate, arrivano di pomeriggio.");
       ui.learned(learn("meteo"));
       return;
@@ -200,7 +206,7 @@ export function setupMissions(w: World, people: People, v: Valley) {
       c.setHours(nextMorning(c.getHours())); // la mattina dopo (prima l'orologio tornava alle 7:15 del primo giorno)
       ui.toast("<b>Buongiorno!</b> Hai dormito al Rifugio Omio.");
     }
-    setMission("rientro", "done");
+    finishMission("rientro");
     ui.learned(learn("tramonto"));
   }
 
@@ -244,9 +250,8 @@ export function setupMissions(w: World, people: People, v: Valley) {
     }
     glacier.setYear(2025);
     c.cinema(null);
-    if (seenYears.has(1850) && seenYears.has(2050) && mission("ghiacciaio") !== "done") {
-      setMission("ghiacciaio", "done");
-      ui.toast("<b>Missione completata</b> Il ghiacciaio nel tempo");
+    if (seenYears.has(1850) && seenYears.has(2050) && state.active === "ghiacciaio") {
+      ui.toast(`<b>Missione ${finishMission("ghiacciaio") ? "completata" : "rifatta"}</b> Il ghiacciaio nel tempo`);
       sound.ui("done");
     }
   }
@@ -265,12 +270,13 @@ export function setupMissions(w: World, people: People, v: Valley) {
       state.seen.push(species);
       save();
     }
+    faunaNow.add(species);
     ui.toast(`<b>${name}</b> osservati da una distanza rispettosa`);
     ui.learned(learn(species));
-    if (state.active === "fauna" && ["stambecco", "marmotta", "aquila"].every((s) => state.seen.includes(s)) && mission("fauna") !== "done") {
-      setMission("fauna", "done");
+    if (state.active === "fauna" && (["stambecco", "marmotta", "aquila"] as Species[]).every(seenFauna)) {
+      const first = finishMission("fauna");
       ui.learned(learn("cani"));
-      ui.toast("<b>Missione completata</b> Occhi da guardiaparco");
+      ui.toast(`<b>Missione ${first ? "completata" : "rifatta"}</b> Occhi da guardiaparco`);
       sound.ui("done");
     }
   }
@@ -307,10 +313,10 @@ export function setupMissions(w: World, people: People, v: Valley) {
       if (tick <= 0.2) return;
       tick = 0;
       // missione rientro: arrivo in paese
-      if (state.active === "rientro" && rientroStage === "down" && mission("rientro") !== "done" && me.distanceTo(at(martino)) < 70) {
+      if (state.active === "rientro" && rientroStage === "down" && me.distanceTo(at(martino)) < 70) {
         const h = c.getHours();
-        setMission("rientro", "done");
-        ui.toast(isDaylight(h) ? `<b>Missione completata</b> Rientrata alle ${hhmm(h)}, con la luce` : `<b>Rientrata alle ${hhmm(h)}</b>, col buio: la prossima volta parti prima`);
+        const first = finishMission("rientro");
+        ui.toast(isDaylight(h) ? `<b>Missione ${first ? "completata" : "rifatta"}</b> Rientrata alle ${hhmm(h)}, con la luce` : `<b>Rientrata alle ${hhmm(h)}</b>, col buio: la prossima volta parti prima`);
         sound.ui("done");
       }
       // al buio senza frontale

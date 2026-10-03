@@ -34,7 +34,8 @@ export function setupGuidance(w: World, engine: QuestEngine, routes: Routes, cli
       ui.setQuest(q ? q.title : null, q ? q.steps.map((st) => ({ text: st.text, done: st.done, current: st === cur })) : [], other);
       const guide = routes.guide;
       const tgt = guide ? { pos: guide.pts[Math.min(guide.pts.length - 1, guide.idx + 2)], name: guide.dest.name } : cur?.pos ? { pos: cur.pos, name: cur.name ?? "" } : null;
-      const goalText = guide ? routes.directions(me) : cur ? cur.text : q ? null : "Esplora la valle · parla con Marta per una missione";
+      // se una missione non avesse più passi da fare, in alto si dice comunque cosa fare (mai una barra vuota)
+      const goalText = guide ? routes.directions(me) : cur ? cur.text : q ? `${q.title}: fatto! Parla con Marta per la prossima` : "Esplora la valle · parla con Marta per una missione";
       const ac = climbing.active();
       // in parete l'obiettivo è la cima (la catena, sul Remenno)
       ui.setGoal(ac ? climbing.goal(ac) : goalText);

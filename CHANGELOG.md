@@ -29,7 +29,10 @@ sola, muri veri, orologio che può saltare senza rompere niente.
   campanacci (ogni mucca il suo), marmotta, aquila, gracchi in quota, elicottero, tuffi, passi su erba, roccia e neve.
   Fonti e licenze in [public/audio/CREDITI.md](public/audio/CREDITI.md) e nei crediti del gioco; `npm run audio` li
   rigenera.
-- 9 prove nel browser.
+- Rifare una missione già fatta (dal menu di Marta) riparte da zero; prima i passi risultavano già tutti fatti e
+  l'obiettivo in alto restava vuoto. I salvataggi rimasti bloccati così si sbloccano da soli.
+- Nel telefono le missioni iniziate e lasciate a metà hanno il pulsante «Riprendi».
+- 10 prove nel browser.
 
 **Dentro**
 

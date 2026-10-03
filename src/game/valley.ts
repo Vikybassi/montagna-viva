@@ -10,7 +10,7 @@ import * as mini from "../minigames";
 import { Nature, buildCairns } from "../nature";
 import { Race } from "../race";
 import { buildSigns } from "../signs";
-import { learn, mission, save, setMission, state } from "../state";
+import { finishMission, learn, mission, save, state } from "../state";
 import * as ui from "../ui";
 import { S } from "../world";
 import type { Interact, World } from "./base";
@@ -205,7 +205,7 @@ export function setupValley(w: World) {
           ui.toast(`<b>Arrivo!</b> ${ui.fmtTime(e.time!)}${record ? " · nuovo record" : ` · record ${ui.fmtTime(best!)}`}`);
           sound.ui("done");
           ui.learned(learn("corsa"));
-          if (mission("corsa") !== "done") setMission("corsa", "done");
+          if (mission("corsa") !== "done" || state.active === "corsa") finishMission("corsa");
           finishShown = 4;
         }
       }

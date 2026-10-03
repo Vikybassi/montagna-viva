@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
-import { SAVE_VERSION, empty, exportSave, importSave, migrate, nextMorning, sanitize, state } from "../../src/state";
+import { SAVE_VERSION, empty, exportSave, finishMission, importSave, migrate, nextMorning, sanitize, state } from "../../src/state";
 
 describe("salvataggi", () => {
   it("un salvataggio vuoto o strano diventa una partita nuova", () => {
@@ -51,5 +51,24 @@ describe("dormire al rifugio", () => {
     expect(nextMorning(24 * 2 + 20)).toBeCloseTo(24 * 3 + 7.25);
     expect(nextMorning(3)).toBeCloseTo(7.25); // dopo mezzanotte: la stessa mattina
     expect(nextMorning(50)).toBeGreaterThan(50);
+  });
+});
+
+describe("missioni finite", () => {
+  it("una missione già finita non resta quella da seguire (salvataggi di prima)", () => {
+    const s = sanitize({ active: "ghiacciaio", missions: { ghiacciaio: "done", fauna: "active" } });
+    expect(s.active).toBeNull();
+    expect(s.missions.fauna).toBe("active");
+  });
+  it("finire una missione: la prima volta «completata», poi «rifatta»; in ogni caso non è più in corso", () => {
+    Object.assign(state, empty());
+    state.active = "corsa";
+    state.missions.corsa = "active";
+    expect(finishMission("corsa")).toBe(true);
+    expect(state.active).toBeNull();
+    state.active = "corsa"; // rifatta con Marta
+    expect(finishMission("corsa")).toBe(false);
+    expect(state.active).toBeNull();
+    expect(state.missions.corsa).toBe("done");
   });
 });

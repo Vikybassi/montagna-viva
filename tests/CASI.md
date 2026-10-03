@@ -4,7 +4,7 @@ Le situazioni strane che il gioco deve reggere, ognuna con la prova che la contr
 `unit` = `npm test` (Vitest, `tests/unit/`), `e2e` = `npm run test:e2e` (Chrome, `tests/e2e/`).
 Quando si corregge un bug, si aggiunge qui la riga e la prova che lo tiene lontano.
 
-Stato al 3 ottobre 2026 (M1): **tutti verdi** — 51 prove unit, 9 prove e2e (anche in grafica software, come su GitHub).
+Stato al 3 ottobre 2026 (M1): **tutti verdi** — 53 prove unit, 10 prove e2e (anche in grafica software, come su GitHub).
 Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco fa pochi fotogrammi al secondo.
 
 ## Salvataggi
@@ -30,6 +30,9 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 11b | Arrivano le nuvole nere e Marta chiama | L'obiettivo in alto diventa subito il riparo, prima che inizi a piovere | e2e `shelter` |
 | 11c | Commissione accettata o finita (Rosa col pane già nello zaino) | La persona risponde sempre: ricorda dove andare, o ringrazia | e2e `encounters` |
 | 11d | Si ricarica la pagina con una missione in corso | «Bentornata»: si dice quale e il prossimo passo; si sceglie se continuare o metterla in pausa | e2e `welcome` |
+| 11f | Rifare con Marta una missione già fatta | Riparte da zero con i passi veri; alla fine «Missione rifatta» e non resta in corso | e2e `missions`, unit `state` |
+| 11g | Salvataggio con una missione finita ancora «in corso» | Al caricamento si sblocca: in alto c'è sempre cosa fare, niente «bentornata» sbagliato | e2e `missions`, unit `state` |
+| 11h | Missioni iniziate e lasciate a metà | Nel telefono, con «Riprendi» | e2e `missions` |
 | 11e | Ti avvicini a una persona | Si gira verso di te (anche chi para sui blocchi, quando non arrampichi) | e2e `welcome` |
 
 ## Tastiera

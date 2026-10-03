@@ -99,6 +99,8 @@ export function sanitize(raw: unknown): Saved {
   s.ometti = Math.max(0, Math.round(s.ometti));
   for (const slot of ["occhiali", "collo", "bastoncini"] as const) if (typeof s.outfit[slot] !== "string") s.outfit[slot] = null;
   if (typeof s.outfit.cappello !== "string") s.outfit.cappello = "c-berretto";
+  // una missione già finita non può restare quella da seguire (salvataggi di prima: l'obiettivo restava vuoto)
+  if (s.active && (s.missions as Record<string, string>)[s.active] === "done") s.active = null;
   s.version = SAVE_VERSION;
   return s;
 }
@@ -194,6 +196,17 @@ export function learn(id: string) {
 }
 
 export const mission = (id: MissionId): MissionState => state.missions[id] ?? "new";
+/**
+ * Fine di una missione: la prima volta è «completata», le volte dopo (rifatta con Marta) solo «rifatta»; in ogni caso
+ * smette di essere quella da seguire. Restituisce true se era la prima volta.
+ */
+export function finishMission(id: MissionId) {
+  const first = state.missions[id] !== "done";
+  state.missions[id] = "done";
+  if (state.active === id) state.active = null;
+  save();
+  return first;
+}
 export function setMission(id: MissionId, s: MissionState) {
   state.missions[id] = s;
   if (s === "active") state.active = id;

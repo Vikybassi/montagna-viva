@@ -408,6 +408,8 @@ root.appendChild(bar);
 export const tools = {
   onPhone: () => {},
   onFollow: (_kind: "missione" | "commissione") => {},
+  /** riprendere una missione iniziata e lasciata a metà */
+  onResume: (_id: string) => {},
   onCamera: () => {},
   onRun: () => {},
   onJump: () => {},

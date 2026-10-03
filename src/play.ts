@@ -62,6 +62,13 @@ export function setupPlay(c: PlayCtx) {
     save();
     routes.resetMissionRoute();
   };
+  // dal telefono: riprendere una missione lasciata a metà (diventa quella da seguire)
+  ui.tools.onResume = (id) => {
+    state.active = id as typeof state.active;
+    state.followErrand = false;
+    save();
+    routes.resetMissionRoute();
+  };
   ui.tools.onPhone = () => {
     if (phone.isOpen || !ui.busy) phone.toggle();
   };

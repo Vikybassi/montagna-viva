@@ -1,5 +1,5 @@
 import { sound } from "./audio";
-import { SLOTS, WARDROBE, type Wear } from "./content";
+import { MISSIONS, SLOTS, WARDROBE, type Wear } from "./content";
 import type { Outfit } from "./player";
 import { has, save, state } from "./state";
 import { CHAPTERS, TASKS, checkTasks, isDone, taskProgress } from "./tasks";
@@ -104,6 +104,12 @@ export class Phone {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-wear]");
       if (b) this.dress(b.dataset.wear!);
       // seguire l'altra cosa in corso: l'obiettivo in alto cambia subito
+      const r = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-resume]");
+      if (r) {
+        ui.tools.onResume(r.dataset.resume!);
+        sound.ui("go");
+        setTimeout(() => this.show("missioni"), 80);
+      }
       const f = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-follow]");
       if (f) {
         ui.tools.onFollow(f.dataset.follow as "missione" | "commissione");
@@ -213,6 +219,11 @@ export class Phone {
       html += `<article class="ph-card now"><p class="ph-k">In corso</p><h3>${q.title}</h3><span class="ph-prog" aria-hidden="true"><i style="width:${Math.round((n / q.steps.length) * 100)}%"></i></span><p class="ph-n">${n} di ${q.steps.length} passi</p><ol class="ph-steps">${q.steps.map((s) => `<li class="${s.done ? "done" : ""}${s.current ? " cur" : ""}">${s.text}</li>`).join("")}</ol></article>`;
     } else html += `<p class="ph-note">Le missioni grandi le scegli con Marta, a San Martino.</p>`;
     const o = ui.otherQuest;
+    // le missioni iniziate e lasciate a metà: si riprendono da qui (prima si poteva solo da Marta)
+    for (const m of MISSIONS) {
+      if (state.missions[m.id] !== "active" || state.active === m.id || m.id === "zaino") continue;
+      html += `<article class="ph-card other"><div class="ph-row"><span><p class="ph-k">Iniziata, a metà</p><h3>${m.title}</h3></span><button type="button" class="ph-follow" data-resume="${m.id}">Riprendi</button></div></article>`;
+    }
     if (o) html += `<article class="ph-card other"><div class="ph-row"><span><p class="ph-k">${o.kind === "missione" ? "Missione in pausa" : "Commissione in corso"}</p><h3>${o.title}</h3></span><button type="button" class="ph-follow" data-follow="${o.kind}">Segui</button></div></article>`;
     for (const ch of CHAPTERS) {
       const list = TASKS.filter((k) => k.chapter === ch.id);
