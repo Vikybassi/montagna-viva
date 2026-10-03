@@ -78,8 +78,8 @@ export function setupPlay(c: PlayCtx) {
     save();
     routes.resetMissionRoute();
   };
-  ui.tools.onPhone = () => {
-    if (phone.isOpen || !ui.busy) phone.toggle();
+  ui.tools.onPhone = (tab) => {
+    if (phone.isOpen || !ui.busy) phone.toggle(tab);
   };
 
   /**

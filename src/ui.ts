@@ -403,10 +403,11 @@ const top = el("div", "topbtns");
 top.innerHTML = `<button type="button" data-k="sound" class="soundbtn" aria-pressed="true" aria-label="Suono">♪</button><button type="button" data-k="pause" aria-label="Pausa e impostazioni">☰</button>`;
 root.appendChild(top);
 const bar = el("div", "tools");
-bar.innerHTML = `<button type="button" data-k="camera" class="camerabtn" aria-label="Fotocamera (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-k="jump" class="touchbtn">Salta / Vola</button><button type="button" data-k="run" class="runbtn" aria-pressed="false">Corri</button><button type="button" data-k="drink" class="drinkbtn" aria-label="Bevi un sorso (B)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v3l2 2v13a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7l2-2z"/></svg><i class="drink-lvl" aria-hidden="true"></i></button><button type="button" data-k="phone" class="miniphone" aria-label="Apri il telefono (Tab)"><span class="mp-screen"><b class="mp-time">14:00</b></span><i class="mp-dot" aria-hidden="true"></i><span class="mp-wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cairn"/></svg><b class="mp-ometti">0</b><span class="sr">ometti</span></span></button>`;
+bar.innerHTML = `<button type="button" data-k="camera" class="camerabtn" aria-label="Fotocamera (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-k="jump" class="touchbtn">Salta / Vola</button><button type="button" data-k="run" class="runbtn" aria-pressed="false">Corri</button><button type="button" data-k="drink" class="drinkbtn" aria-label="Bevi un sorso (B)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v3l2 2v13a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7l2-2z"/></svg><i class="drink-lvl" aria-hidden="true"></i></button><div class="miniphone" role="group" aria-label="Telefono"><span class="mp-screen"><button type="button" data-k="phone" class="mp-top" aria-label="Apri il telefono (Tab)"><b class="mp-time">14:00</b></button><span class="mp-grid"><button type="button" data-k="phone" data-tab="missioni" class="mp-icon mp-missioni" aria-label="Missioni"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4M6 4h11l-2 4 2 4H6"/></svg><i class="mp-idot" aria-hidden="true"></i></button><button type="button" data-k="phone" data-tab="mappa" class="mp-icon mp-mappa" aria-label="Mappa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.5-6-10a6 6 0 0 1 12 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg><i class="mp-idot" aria-hidden="true"></i></button><button type="button" data-k="phone" data-tab="foto" class="mp-icon mp-foto" aria-label="Foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><i class="mp-idot" aria-hidden="true"></i></button><button type="button" data-k="phone" data-tab="zaino" class="mp-icon mp-zaino" aria-label="Zaino"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9a5 5 0 0 1 10 0v11H7zM9 4h6M7 14h10M10 14v2"/></svg><i class="mp-idot" aria-hidden="true"></i></button></span><span class="mp-wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cairn"/></svg><b class="mp-ometti">0</b><span class="sr">ometti</span></span></span><i class="mp-dot" aria-hidden="true"></i></div>`;
 root.appendChild(bar);
 export const tools = {
-  onPhone: () => {},
+  /** apre il telefono (sulla scheda data, dalle icone del telefonino) */
+  onPhone: (_tab?: PhoneTab) => {},
   onFollow: (_kind: "missione" | "commissione") => {},
   /** riprendere una missione iniziata e lasciata a metà */
   onResume: (_id: string) => {},
@@ -419,8 +420,9 @@ export const tools = {
 };
 for (const b of [top, bar])
   b.addEventListener("click", (e) => {
-    const k = (e.target as HTMLElement).closest("button")?.dataset.k;
-    if (k === "phone") tools.onPhone();
+    const btn = (e.target as HTMLElement).closest("button");
+    const k = btn?.dataset.k;
+    if (k === "phone") tools.onPhone(btn?.dataset.tab as PhoneTab | undefined);
     if (k === "camera") tools.onCamera();
     if (k === "run") tools.onRun();
     if (k === "drink") tools.onDrink();

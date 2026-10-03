@@ -17,6 +17,11 @@ export default async function smoke(browser) {
   await wait(500);
   check(!(await page.evaluate(() => window.__mv.busy())), "Esc chiude il telefono e il gioco riparte");
   check(!(await page.evaluate(() => !!document.querySelector(".panel.on"))), "lo stesso Esc non apre la pausa");
+  // il telefonino nell'angolo: le icone aprono subito la scheda giusta
+  await page.evaluate(() => document.querySelector('.mp-icon[data-tab="foto"]').click());
+  check(await until(page, () => window.__mv.layer() === "telefono" && (document.querySelector(".ph-body h2")?.textContent ?? "") === "Foto"), "l'icona della fotocamera nel telefonino apre le foto");
+  await page.keyboard.press("Escape");
+  await until(page, () => window.__mv.layer() === "mondo");
   await page.keyboard.press("p");
   await wait(500);
   check(await page.evaluate(() => document.querySelector(".finder").classList.contains("on")), "P apre la fotocamera");

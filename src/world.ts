@@ -301,9 +301,10 @@ export function buildSkirt(t: Terrain) {
 export const edgeDistance = (t: Terrain, x: number, z: number) => Math.min(x, z, t.width - x, t.depth - z);
 
 /** Nastro che segue il terreno lungo una linea (sentieri, torrenti). */
-function ribbon(t: Terrain, lines: Pt[][], width: number | ((x: number, z: number) => number), lift: number, color: THREE.Color, every = 4) {
+function ribbon(t: Terrain, lines: Pt[][], width: number | ((x: number, z: number) => number), lift: number, color: THREE.Color | ((x: number, z: number, out: THREE.Color) => THREE.Color), every = 4) {
   const wAt = typeof width === "number" ? () => width : width;
-  const P: number[] = [], I: number[] = [];
+  const cAt = typeof color === "function" ? color : null, tmpC = new THREE.Color();
+  const P: number[] = [], I: number[] = [], Cl: number[] = [];
   for (const raw of lines) {
     // via i punti troppo vicini (meno di 2,5 unità): nei tornantini fitti il nastro faceva una scaletta
     const line: Pt[] = [];
@@ -328,9 +329,11 @@ function ribbon(t: Terrain, lines: Pt[][], width: number | ((x: number, z: numbe
       const dir = q.clone().sub(o).normalize();
       const wd = wAt(p.x, p.y);
       const nx = -dir.y * wd * 0.5, nz = dir.x * wd * 0.5;
+      if (cAt) cAt(p.x, p.y, tmpC);
       for (const s of [1, -1]) {
         const x = p.x + nx * s, z = p.y + nz * s;
         P.push(x, t.heightAt(x, z) + lift, z);
+        if (cAt) Cl.push(tmpC.r, tmpC.g, tmpC.b);
       }
       if (i < pts.length - 1) {
         const v = base + i * 2;
@@ -348,11 +351,12 @@ function ribbon(t: Terrain, lines: Pt[][], width: number | ((x: number, z: numbe
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
   g.setIndex(I);
+  if (cAt) g.setAttribute("color", new THREE.Float32BufferAttribute(Cl, 3));
   // normali verso l'alto: il nastro prende la luce come il prato sotto (calcolate dai triangoli, metà sarebbero rovesciate)
   const up = new Float32Array(P.length);
   for (let i = 1; i < up.length; i += 3) up[i] = 1;
   g.setAttribute("normal", new THREE.BufferAttribute(up, 3));
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const m = new THREE.MeshStandardMaterial({ color: cAt ? "#ffffff" : (color as THREE.Color), vertexColors: !!cAt, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const mesh = new THREE.Mesh(g, m);
   mesh.receiveShadow = true;
   return mesh;
@@ -363,7 +367,7 @@ function ribbon(t: Terrain, lines: Pt[][], width: number | ((x: number, z: numbe
  * più verde sotto), più larghi vicino ai paesi. Restituisce anche `near`: quanto sei lontana dal bordo del sentiero più
  * vicino (serve a non far crescere erba e cespugli sopra).
  */
-export function buildTrails(t: Terrain, data: WorldData) {
+export function buildTrails(t: Terrain, data: WorldData, cover: Cover) {
   const group = new THREE.Group();
   const villages = data.huts.filter((h) => h.kind === "paese").map((h) => [h.p[0] * S, h.p[1] * S] as const);
   // vicino a un paese (entro 160 unità) i sentieri si allargano piano piano
@@ -372,18 +376,23 @@ export function buildTrails(t: Terrain, data: WorldData) {
     for (const [vx, vz] of villages) d = Math.min(d, Math.hypot(vx - x, vz - z));
     return 1 - THREE.MathUtils.smoothstep(d, 40, 160);
   };
+  // nel bosco i sentieri e le strade forestali sono terra battuta: stretti, scuri, quasi nascosti dagli alberi (come in
+  // Val Masino, dove dal fondovalle non si vedono). Fuori dal bosco restano chiari; l'asfalto solo nei prati e in paese.
   const KIND = {
-    p: { w: 1.7, wt: 2.6, c: "#e6d6ae", e: "#bdd08a" },
-    a: { w: 1.7, wt: 2.6, c: "#e6d6ae", e: "#bdd08a" },
-    t: { w: 2.4, wt: 3.2, c: "#ddcca4", e: "#b9cc86" },
-    r: { w: 3.0, wt: 3.6, c: "#b9b6bd", e: "#a9b98e" },
+    p: { w: 1.7, wt: 2.6, c: "#e6d6ae", e: "#bdd08a", cf: "#9b8462", ef: "#6a9a4e" },
+    a: { w: 1.7, wt: 2.6, c: "#e6d6ae", e: "#bdd08a", cf: "#9b8462", ef: "#6a9a4e" },
+    t: { w: 2.4, wt: 3.2, c: "#ddcca4", e: "#b9cc86", cf: "#97805f", ef: "#679750" },
+    r: { w: 3.0, wt: 3.6, c: "#b9b6bd", e: "#a9b98e", cf: "#9a8462", ef: "#669650" },
   } as const;
+  const woods = (x: number, z: number) => THREE.MathUtils.smoothstep(cover.at(cover.forest, x, z), 0.25, 0.6) * (1 - town(x, z));
   const lines = { p: [] as Pt[][], a: [] as Pt[][], t: [] as Pt[][], r: [] as Pt[][] };
   for (const p of data.paths) lines[p.k].push(p.pts);
   for (const k of ["r", "t", "p", "a"] as const) {
-    const K = KIND[k], width = (x: number, z: number) => THREE.MathUtils.lerp(K.w, K.wt, town(x, z));
-    group.add(ribbon(t, lines[k], (x, z) => width(x, z) + 1.1, 0.3, new THREE.Color(K.e)));
-    group.add(ribbon(t, lines[k], width, 0.36, new THREE.Color(K.c)));
+    const K = KIND[k];
+    const width = (x: number, z: number) => THREE.MathUtils.lerp(K.w, K.wt, town(x, z)) * (1 - 0.35 * woods(x, z));
+    const c0 = new THREE.Color(K.c), c1 = new THREE.Color(K.cf), e0 = new THREE.Color(K.e), e1 = new THREE.Color(K.ef);
+    group.add(ribbon(t, lines[k], (x, z) => width(x, z) + 1.1 * (1 - 0.5 * woods(x, z)), 0.3, (x, z, o) => o.copy(e0).lerp(e1, woods(x, z))));
+    group.add(ribbon(t, lines[k], width, 0.36, (x, z, o) => o.copy(c0).lerp(c1, woods(x, z))));
   }
   // indice dei sentieri: punti ogni 2 unità con la loro mezza larghezza, in celle da 8 unità
   const CELL = 8, grid = new Map<number, number[]>();

@@ -264,19 +264,33 @@ body:not(.playing) .netpill { display: none; }
 /* ---------- il telefono ---------- */
 :root { --ph-frame: #f0957e; --ph-screen: #e3f3ec; --ph-ink: #12423a; --ph-soft: #3d7a6c; --ph-mint: #b9e3d3; --skin: #f0c3a6; --skin-d: #dfa587; }
 /* il telefonino in basso a destra: l'ora sullo schermo e un puntino rosso se c'è qualcosa di nuovo */
-.tools .miniphone { position: relative; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; cursor: pointer; backdrop-filter: none; }
-.tools .miniphone:hover { background: none; }
-.mp-screen { display: grid; place-items: center; width: 58px; height: 92px; border: 5px solid var(--ph-frame); border-radius: 15px; background: var(--ph-screen); box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5); transition: transform 0.2s; }
-.miniphone:hover .mp-screen { transform: translateY(-4px) rotate(-4deg); }
+/* il telefonino nell'angolo, come in Coastal World: inclinato, con l'ora, quattro icone e gli ometti sullo schermo */
+.tools .miniphone { position: relative; display: block; padding: 0; border: 0; background: none; transform: rotate(-5deg); transition: transform 0.2s; }
+.tools .miniphone:hover { transform: rotate(-2deg) translateY(-4px); }
+.mp-screen { display: grid; grid-template-rows: auto 1fr auto; gap: 6px; width: 104px; padding: 8px 8px 9px; border: 5px solid var(--ph-frame); border-radius: 20px; background: var(--ph-screen); box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.5); }
+.tools .mp-top { padding: 2px 0; border: 0; border-radius: 8px; background: none; cursor: pointer; }
+.tools .mp-top:hover { background: var(--ph-mint); }
 .mp-time { font: 700 14px var(--mono); color: var(--ph-ink); }
-.mp-dot { position: absolute; top: -5px; right: -5px; width: 17px; height: 17px; border: 2px solid #fff; border-radius: 50%; background: #e2453c; transform: scale(0); transition: transform 0.25s; }
+.mp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tools .mp-icon { position: relative; display: grid; place-items: center; aspect-ratio: 1; padding: 0; border: 0; border-radius: 12px; background: #fff; color: var(--ph-ink); box-shadow: 0 2px 0 rgba(18, 66, 58, 0.12); cursor: pointer; transition: transform 0.15s; }
+.tools .mp-icon:hover { transform: scale(1.08); }
+.tools .mp-icon:focus-visible, .tools .mp-top:focus-visible { outline: 3px solid var(--ph-ink); outline-offset: 1px; }
+.mp-icon svg { width: 24px; height: 24px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mp-missioni svg { stroke: #e2453c; }
+.mp-mappa svg { stroke: #3f7fd0; }
+.mp-foto svg { stroke: #2f8f8a; }
+.mp-zaino svg { stroke: #e08a2e; }
+.mp-idot { position: absolute; top: -3px; right: -3px; width: 11px; height: 11px; border: 2px solid #fff; border-radius: 50%; background: #e2453c; transform: scale(0); transition: transform 0.25s; }
+.mp-icon.new .mp-idot { transform: scale(1); }
+.mp-dot { position: absolute; top: -6px; right: -6px; width: 17px; height: 17px; border: 2px solid #fff; border-radius: 50%; background: #e2453c; transform: scale(0); transition: transform 0.25s; }
 .miniphone.new .mp-dot { transform: scale(1); }
-.mp-wallet { display: flex; align-items: center; gap: 3px; padding: 2px 8px 2px 4px; border-radius: 999px; background: rgba(35, 26, 43, 0.72); color: #fff; font: 700 12px var(--mono); }
+.mp-wallet { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: #fff; color: var(--ph-ink); font: 700 14px var(--mono); box-shadow: 0 2px 0 rgba(18, 66, 58, 0.12); }
 .mp-wallet svg { width: 18px; height: 18px; }
 /* sugli schermi piccoli un po' meno grande: lascia spazio al gioco */
 @media (max-width: 600px) {
-  .mp-screen { width: 48px; height: 76px; border-width: 4px; border-radius: 13px; }
-  .mp-time { font-size: 12px; }
+  .mp-screen { width: 84px; padding: 6px; border-width: 4px; border-radius: 16px; gap: 4px; }
+  .mp-icon svg { width: 19px; height: 19px; }
+  .mp-time, .mp-wallet { font-size: 12px; }
 }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
@@ -540,6 +554,7 @@ body.finding .goal, body.finding .tools, body.finding #hint, body.finding .netpi
 .call-yes kbd { background: rgba(255, 255, 255, 0.25); color: #fff; }
 @media (pointer: coarse) { .call-yes kbd { display: none; } }
 .miniphone.ringing .mp-screen { animation: ring 0.5s ease-in-out infinite; background: #b9f0cf; }
+@media (prefers-reduced-motion: reduce) { .miniphone.ringing .mp-screen { animation: none; } .tools .miniphone, .tools .miniphone:hover { transform: none; } }
 @keyframes ring { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-9deg) translateY(-3px); } 75% { transform: rotate(9deg) translateY(-3px); } }
 
 /* ---------- minigioco: l'ometto ---------- */

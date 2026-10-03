@@ -58,7 +58,7 @@ const terrainMesh = buildTerrainMesh(T, cover);
 // oltre il bordo della mappa: altre creste nella foschia, non il vuoto
 scene.add(buildSkirt(T));
 scene.add(terrainMesh);
-const trails = buildTrails(T, data);
+const trails = buildTrails(T, data, cover);
 scene.add(trails.group);
 // erba intorno a te e cespugli ai bordi dei sentieri (niente sulle piazze dei paesi)
 const squares = data.huts.filter((h) => h.kind === "paese").map((h) => [h.p[0] * S, h.p[1] * S] as [number, number]);
