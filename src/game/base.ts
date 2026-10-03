@@ -48,6 +48,12 @@ export type PlayCtx = {
 export type Interact = { pos: THREE.Vector3; r: number; text: () => string | null; act: () => void };
 
 export const SUNSET = 19.5;
+/** quando c'è abbastanza luce per camminare (circa): l'orologio conta i giorni (31 = le 7 del secondo giorno) */
+export const SUNRISE = 6.5;
+export const isDaylight = (hours: number) => {
+  const h = ((hours % 24) + 24) % 24;
+  return h >= SUNRISE && h < SUNSET;
+};
 /** le persone stanno ferme (si muovono solo per girarsi) */
 export const STILL = new THREE.Vector2();
 export const hhmm = (h: number) => `${String(Math.floor(h) % 24).padStart(2, "0")}:${String(Math.floor((h % 1) * 60)).padStart(2, "0")}`;

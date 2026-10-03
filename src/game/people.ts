@@ -6,7 +6,7 @@ import type { Year } from "../glacier";
 import { Hiker } from "../player";
 import { has, learn, mission, nextMorning, save, setMission, state } from "../state";
 import * as ui from "../ui";
-import { STILL, SUNSET, dur, hhmm, type Interact, type World } from "./base";
+import { STILL, SUNSET, dur, hhmm, isDaylight, type Interact, type World } from "./base";
 import type { Quest } from "./quests";
 import type { Valley } from "./valley";
 
@@ -163,7 +163,8 @@ export function setupMissions(w: World, people: People, v: Valley) {
       ui.learned(learn("meteo"));
       return;
     }
-    const spare = SUNSET - ((h % 24) + down);
+    // di notte (anche prima dell'alba) non c'è margine: si resta o si scende con la frontale
+    const spare = isDaylight(h) ? SUNSET - ((h % 24) + down) : -1;
     const intro = `Ciao, Marta mi ha detto che arrivavi! Sono le ${hhmm(h)}. Per scendere a San Martino servono circa ${dur(down)} e il sole tramonta alle ${hhmm(SUNSET)}.`;
     if (spare > 0.25) {
       const i = await ui.say("Giulio, custode", `${intro} Hai ${dur(spare)} di margine. Cosa fai?`, ["Scendo subito, con calma", "Resto a dormire qui", "Salgo ancora fino al passo"]);
@@ -288,7 +289,7 @@ export function setupMissions(w: World, people: People, v: Valley) {
     ...signs.signposts.map((s, i) => ({ pos: s.pos, r: 5, text: () => "Leggi il cartello", act: () => readSign(i) })),
   ];
 
-  let tick = 0, darkWarned = false;
+  let tick = 0, darkWarned = Math.floor((c.getHours() - 12) / 24) - 1;
   // per raccontare agli altri giocatori le imprese nuove
   let told = { stamps: state.stamps.length, summits: state.summits.length, done: MISSIONS.filter((m) => mission(m.id) === "done").length, boulder: state.boulder };
   return {
@@ -309,12 +310,14 @@ export function setupMissions(w: World, people: People, v: Valley) {
       if (state.active === "rientro" && rientroStage === "down" && mission("rientro") !== "done" && me.distanceTo(at(martino)) < 70) {
         const h = c.getHours();
         setMission("rientro", "done");
-        ui.toast(h % 24 < SUNSET ? `<b>Missione completata</b> Rientrata alle ${hhmm(h)}, con la luce` : `<b>Rientrata alle ${hhmm(h)}</b>, col buio: la prossima volta parti prima`);
+        ui.toast(isDaylight(h) ? `<b>Missione completata</b> Rientrata alle ${hhmm(h)}, con la luce` : `<b>Rientrata alle ${hhmm(h)}</b>, col buio: la prossima volta parti prima`);
         sound.ui("done");
       }
       // al buio senza frontale
-      if (!darkWarned && c.getHours() % 24 > SUNSET + 0.4 && !has("frontale") && state.packed) {
-        darkWarned = true;
+      // una volta per sera (le sere si contano da mezzogiorno a mezzogiorno)
+      const evening = Math.floor((c.getHours() - 12) / 24);
+      if (darkWarned !== evening && !isDaylight(c.getHours() - 0.4) && !has("frontale") && state.packed) {
+        darkWarned = evening;
         ui.toast("<b>È buio</b> e non hai la frontale: cammina piano e resta sul sentiero.", "warn");
         ui.learned(learn("frontale"));
       }

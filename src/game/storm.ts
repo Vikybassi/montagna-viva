@@ -155,11 +155,12 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
           sheltered = false;
         }
         if (e === "thunder") sound.thunder();
-        if (e === "end") {
-          // dopo il temporale, col sole: l'arcobaleno
-          v.skyEvents.rainbowNow(c.getHours());
+        if (e === "end" || e === "passed") {
+          // dopo il temporale, col sole: l'arcobaleno (non se è finito mentre dormivi o viaggiavi)
+          if (e === "end") v.skyEvents.rainbowNow(c.getHours());
           ui.toast("<b>Il temporale è passato.</b> Puoi riprendere la missione da dove l'avevi lasciata.");
           stormShelter = null;
+          callPending = false; // niente telefonata per un temporale già finito
         }
       }
       if (weather.phase === "storm") {
@@ -178,6 +179,7 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
       // la telefonata di Marta: appena sei libera (non mentre parli, arrampichi, corri o sei già dentro)
       const today = Math.floor(c.getHours() / 24);
       if (today !== callDay) (callDay = today), (calledToday = false);
+      if (callPending && weather.phase === "clear") callPending = false; // saltato l'orologio oltre il temporale
       if (callPending && !calledToday && !ui.busy && !busy()) martaCalls();
     },
   };

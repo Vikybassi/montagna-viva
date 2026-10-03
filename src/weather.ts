@@ -5,6 +5,8 @@ import * as THREE from "three";
  * tuoni per circa un'ora e mezza di gioco. Insegna una cosa vera: d'estate i temporali in montagna arrivano spesso nel
  * pomeriggio, e bisogna scendere dalle creste e cercare riparo.
  */
+export type WeatherEvent = "building" | "start" | "thunder" | "end" | "passed";
+
 export class Weather {
   /** 0 = sereno, 1 = temporale pieno */
   storm = 0;
@@ -49,9 +51,13 @@ export class Weather {
     return this.startAt + 1.5;
   }
 
-  /** eventi: "building" (nuvole), "start", "thunder", "end" */
-  update(dt: number, hours: number, cam: THREE.Vector3): ("building" | "start" | "thunder" | "end")[] {
-    const ev: ("building" | "start" | "thunder" | "end")[] = [];
+  /**
+   * eventi: "building" (nuvole), "start", "thunder", "end" (finito adesso: col sole può venire l'arcobaleno),
+   * "passed" (finito mentre l'orologio saltava avanti: dormendo, viaggiando, o tornando indietro col debug)
+   */
+  update(dt: number, hours: number, cam: THREE.Vector3): WeatherEvent[] {
+    const ev: WeatherEvent[] = [];
+    const prevEnd = this.startAt + 1.5; // la fine del temporale di cui si parlava finora (prima di cambiare giorno)
     const day = Math.floor(hours / 24);
     if (day !== this.day) {
       this.day = day;
@@ -62,10 +68,13 @@ export class Weather {
     const before = this.phase;
     this.phase = want === 0 ? "clear" : want < 1 ? "building" : "storm";
     if (this.phase !== before) {
+      // prima la fine del temporale vecchio, poi l'inizio del nuovo (un salto può farli capitare insieme)
+      if (before === "storm") ev.push(h > prevEnd + 0.3 || h < prevEnd - 1.6 ? "passed" : "end");
       if (this.phase === "building") ev.push("building");
       if (this.phase === "storm") ev.push("start");
-      if (this.phase === "clear" && before === "storm") ev.push("end");
     }
+    // dopo un salto in un giorno nuovo, senza passare dal sereno: il temporale di ieri è comunque finito
+    if (this.phase === before && before === "storm" && Math.abs(h - prevEnd) > 3) ev.push("passed", "start");
     this.storm += (want - this.storm) * (1 - Math.exp(-0.6 * dt));
     // pioggia attorno alla telecamera
     const m = this.rain.material as THREE.LineBasicMaterial;
