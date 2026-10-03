@@ -57,6 +57,14 @@ export default async function collide(browser) {
     return Math.abs(lx) < b.hw && Math.abs(lz) < b.hd && p.y < b.y1 && p.y > b.y0;
   }, box);
   check(!camIn, "la telecamera è entrata nel rifugio");
+
+  // finita dentro una casa (un viaggio veloce, un salto): si esce camminando, non si resta bloccata
+  await page.evaluate((b) => window.__mv.tp(b.x + 0.3, b.z + 0.2), box);
+  await page.keyboard.down("w");
+  await wait(1500);
+  await page.keyboard.up("w");
+  const out = await page.evaluate((b) => !window.__mv.obstacles.hits(window.__mv.me.x, window.__mv.me.z, window.__mv.me.y, 0.3) && Math.hypot(window.__mv.me.x - b.x, window.__mv.me.z - b.z) > 2, box);
+  check(out, "da dentro una casa non si riesce a uscire");
   check(errors.length === 0, `errori nella pagina: ${errors.join(" | ")}`);
   await page.close();
 }

@@ -29,6 +29,7 @@ export default async function shelter(browser) {
   await page.evaluate(() => document.querySelector(".in-btns .opt").click()); // aspetta che passi
   await wait(4200);
   check((await text(page, ".in-text")).includes("passato"), "dopo l'attesa il temporale è passato");
+  check(await page.evaluate(() => window.__mv.skyEvents.rainbowUntil > 16), "finito adesso: l'arcobaleno è possibile");
   await page.evaluate(() => document.querySelector(".in-btns .opt").click()); // esci
   await wait(1200);
   check(!(await text(page, ".goal-text")).includes("riparo"), "fuori, l'obiettivo torna alla normalità");

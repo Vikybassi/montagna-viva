@@ -164,9 +164,10 @@ export class Router {
       const deg = turn(c.x - n.x, c.z - n.z);
       // gli altri sentieri che partono dal bivio
       const others = this.nodes[ids[k]].edges.filter((e) => e.to !== ids[k - 1] && e.to !== ids[k + 1]).map((e) => turn(this.nodes[e.to].x - n.x, this.nodes[e.to].z - n.z));
-      // si avvisa solo se serve: la strada non è la più dritta, oppure un altro sentiero va quasi nella stessa direzione
-      const straightest = Math.min(Math.abs(deg), ...others.map(Math.abs));
-      if (Math.abs(deg) <= straightest + 1 && !others.some((o) => Math.abs(o - deg) < 35)) continue;
+      // si tace solo se la strada è chiaramente la più dritta (20° meglio di ogni altro sentiero) e nessun altro va quasi
+      // nella stessa direzione; a un bivio a T, dove nessuna prosegue dritta, si dice sempre da che parte andare
+      const others0 = Math.min(Infinity, ...others.map(Math.abs));
+      if (Math.abs(deg) + 20 < others0 && !others.some((o) => Math.abs(o - deg) < 35)) continue;
       // bivi vicini tra loro (meno di 40 m) contano come uno
       if (turns.length && k + 1 - turns[turns.length - 1].i < 2) continue;
       turns.push({ i: k + 1, side: Math.abs(deg) < 25 ? "dritto" : deg > 0 ? "destra" : "sinistra", up: c.h - n.h });

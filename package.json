@@ -11,7 +11,7 @@
     "dev:lan": "vite --host",
     "test": "vitest run tests/unit",
     "test:e2e": "node tests/e2e/run.mjs",
-    "test:smoke": "node tests/e2e/run.mjs smoke"
+    "test:smoke": "node tests/e2e/run.mjs smoke keys collide"
   },
   "dependencies": {
     "three": "^0.170.0"
