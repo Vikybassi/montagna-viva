@@ -6,7 +6,7 @@ import { SunMap } from "./sunmap";
 import { setupPlay } from "./play";
 import { Boulder } from "./climb";
 import { sound } from "./audio";
-import { learn } from "./state";
+import { learn, loadProblem, wipeProgress } from "./state";
 import { Net, loadMe, saveMe } from "./net";
 import { PHRASES as ALL_PHRASES, randomName } from "./content";
 import { Quality } from "./quality";
@@ -463,12 +463,7 @@ function openPauseMenu() {
       }
     },
     onReset: () => {
-      try {
-        localStorage.removeItem("montagna-viva:v1");
-        localStorage.removeItem("montagna-viva:album");
-      } catch {
-        /* niente */
-      }
+      wipeProgress(); // progressi, album e taccuino (prima il taccuino restava)
       location.reload();
     },
   });
@@ -719,6 +714,7 @@ net.onMode = (mode, n) => {
   pill.textContent = mode === "server" ? (n ? `👥 ${n + 1} nella valle` : "👥 solo tu, per ora") : mode === "local" ? (n ? `👥 ${n + 1} (questo browser)` : "👤 gioco da sola") : "";
 };
 startBtn.addEventListener("click", () => {
+  if (loadProblem) setTimeout(() => ui.toast("<b>Il salvataggio era rovinato</b> Ricominci da capo; una copia di riserva resta nel browser.", "warn"), 1500);
   saveMe(me);
   net.connect();
   started = true;

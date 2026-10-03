@@ -17,7 +17,7 @@ import { Hiker } from "./player";
 import { Race } from "./race";
 import { Router, RouteView, type Turn } from "./route";
 import { buildSigns } from "./signs";
-import { addPhoto, addToNotebook, has, learn, mission, setMission, state, save } from "./state";
+import { addPhoto, addToNotebook, has, learn, mission, nextMorning, setMission, state, save } from "./state";
 import * as ui from "./ui";
 import { S, type Cover, type Door, type Place, type Terrain, type WorldData } from "./world";
 
@@ -615,7 +615,7 @@ export function setupPlay(c: Ctx) {
     ui.learned(learn("dormire"));
     if (c.sharedTime()) ui.toast("<b>Resti al rifugio.</b> In compagnia il tempo è di tutti: la notte non si salta, ma qui sei al sicuro.");
     else {
-      c.setHours(7.25);
+      c.setHours(nextMorning(c.getHours())); // la mattina dopo (prima l'orologio tornava alle 7:15 del primo giorno)
       ui.toast("<b>Buongiorno!</b> Hai dormito al Rifugio Omio.");
     }
     setMission("rientro", "done");

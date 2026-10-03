@@ -1,7 +1,7 @@
 import { sound } from "./audio";
 import { FACTS, ITEMS, PACK_SLOTS, SUMMITS, type Fact, type Topic } from "./content";
 import { SUBJECTS, SUBJECT_IDS } from "./nature";
-import { album, notebook, state } from "./state";
+import { album, exportSave, importSave, notebook, state } from "./state";
 
 /**
  * L'interfaccia sopra il gioco: dialoghi con le persone, avvisi, obiettivo con freccia, fiato e cronometro, e i contenuti
@@ -457,12 +457,35 @@ export function openPause(o: PauseOpts) {
       <li>In parete: clic sulla presa (la gialla è il prossimo passo; o le direzioni) · <kbd>F</kbd> scuoti le braccia · <kbd>Spazio</kbd> «Calami!»</li>
     </ul>
     <h3>Altro</h3>
+    <div class="row"><button type="button" class="export">Esporta partita</button><button type="button" class="import">Importa partita</button><input type="file" accept="application/json,.json" class="import-file" hidden></div>
+    <p class="sub">La partita resta in questo browser. Esportala in un file per tenerla al sicuro o continuarla su un altro computer.</p>
     <div class="row"><button type="button" class="credits">Avvertenze e crediti</button><button type="button" class="reset">Ricomincia da capo</button></div>
   </div>`;
   const close = () => closePanel();
   panel.querySelector(".x")!.addEventListener("click", close);
   panel.querySelector(".resume")!.addEventListener("click", close);
   panel.querySelector(".credits")!.addEventListener("click", openCredits);
+  panel.querySelector(".export")!.addEventListener("click", () => {
+    const blob = new Blob([exportSave()], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `montagna-viva-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("<b>Partita esportata</b> Trovi il file nella cartella dei download.");
+  });
+  const file = panel.querySelector<HTMLInputElement>(".import-file")!;
+  panel.querySelector(".import")!.addEventListener("click", () => file.click());
+  file.addEventListener("change", async () => {
+    const f = file.files?.[0];
+    if (!f) return;
+    closePanel();
+    const i = await say("Importa partita", "La partita di questo browser sarà sostituita da quella del file. Continuo?", ["No, lascia stare", "Sì, importa"]);
+    if (i !== 1) return;
+    const err = importSave(await f.text());
+    if (err) toast(`<b>Non importata</b> ${esc(err)}`, "warn");
+    else location.reload();
+  });
   panel.querySelector(".reset")!.addEventListener("click", async () => {
     closePanel();
     const i = await say("Ricomincia da capo", "Vuoi cancellare diario, zaino, timbri, libri di vetta, foto e record? Non si può annullare.", ["No, tieni tutto", "Sì, ricomincia"]);
