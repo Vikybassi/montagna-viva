@@ -1,5 +1,5 @@
 // Avvio, telefono, mappa, fotocamera: il giro minimo che deve sempre funzionare (gira anche su GitHub)
-import { check, openGame, text, wait } from "./lib.mjs";
+import { check, openGame, text, until, wait } from "./lib.mjs";
 
 export default async function smoke(browser) {
   const { page, errors } = await openGame(browser, { save: null, t: 11 });
@@ -23,6 +23,8 @@ export default async function smoke(browser) {
   await page.keyboard.press("Escape");
   await wait(400);
   check(!(await page.evaluate(() => !!window.__mv.finder())), "Esc chiude la fotocamera");
+  // i suoni registrati: tutti scaricati e decodificati (vedi public/audio/CREDITI.md)
+  check(await until(page, () => window.__mv.sound.buffers.size >= 34, null, 30000), `suoni caricati: ${await page.evaluate(() => window.__mv.sound.buffers.size)} di 34`);
   check(errors.length === 0, `errori nella pagina: ${errors.join(" | ")}`);
   await page.close();
 }

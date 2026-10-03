@@ -71,6 +71,8 @@ acceso. Su GitHub, a ogni push, girano la build, le prove veloci e la prova di a
 - Terreno: Copernicus GLO-30 Digital Elevation Model, © DLR e Airbus, programma Copernicus dell'Unione europea.
 - Sentieri, rifugi, cime, laghi, ghiacciai, boschi: © [contributori OpenStreetMap](https://www.openstreetmap.org/copyright), licenza ODbL.
 - Caratteri: Bricolage Grotesque e Geist Mono (SIL Open Font License). Grafica 3D: three.js (MIT).
+- Suoni registrati: Wikimedia Commons (CC0, pubblico dominio, CC BY, CC BY-SA) e Kenney (CC0); autori e licenze in
+  [public/audio/CREDITI.md](public/audio/CREDITI.md). Si rigenerano con `npm run audio`.
 - Il codice è distribuito con licenza MIT (vedi [LICENSE](LICENSE)); i dati mantengono le loro licenze.
 
 Montagna viva è un gioco: tempi, strade e meteo sono semplificati. Non usarlo per pianificare escursioni vere. In

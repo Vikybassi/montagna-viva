@@ -25,6 +25,10 @@ sola, muri veri, orologio che può saltare senza rompere niente.
   pausa.
 - Le persone si girano verso di te quando ti avvicini (anche Rosa, Giorgia, Tommaso, Luca e chi para sui blocchi).
 - Ai confini della mappa: niente più vuoto, ma creste nella foschia e un avviso.
+- **Suoni registrati veri** al posto dei sintetizzati: vento, torrente e ruscello, uccelli, grilli, pioggia e tuoni,
+  campanacci (ogni mucca il suo), marmotta, aquila, gracchi in quota, elicottero, tuffi, passi su erba, roccia e neve.
+  Fonti e licenze in [public/audio/CREDITI.md](public/audio/CREDITI.md) e nei crediti del gioco; `npm run audio` li
+  rigenera.
 - 9 prove nel browser.
 
 **Dentro**

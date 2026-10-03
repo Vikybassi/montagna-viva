@@ -63,6 +63,7 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | # | Caso | Cosa deve succedere | Prova |
 |---|------|---------------------|-------|
 | 26b | In parete, presa dopo presa | Braccia e gambe mai incrociate: ogni arto va dal lato della sua spalla o anca (il modello aveva i lati scambiati) | e2e `boulder` |
+| 26d | I suoni registrati | Tutti e 34 scaricati e decodificati; se uno manca il gioco va avanti senza | e2e `smoke` |
 | 26c | Una foto nuova | Puntino sulla scheda Foto; album e taccuino nel telefono; un tocco ingrandisce, Esc richiude solo la foto | e2e `photo` |
 
 ## Tempo e meteo (l'orologio che salta)

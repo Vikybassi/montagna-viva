@@ -181,7 +181,7 @@ export class Hiker {
   private vy = 0;
   private wing: THREE.Group;
   /** chiamata a ogni passo (per il suono): superficie sotto i piedi */
-  onStep: ((surface: "grass" | "rock" | "water") => void) | null = null;
+  onStep: ((surface: "grass" | "rock" | "snow" | "water") => void) | null = null;
   /** in acqua, in un lago: si nuota (piano, senza correre) */
   swimming = false;
   onLand: (() => void) | null = null;
@@ -427,7 +427,7 @@ export class Hiker {
     const before = Math.sin(this.phase);
     this.phase += dt * (3 + this.speed * 0.95);
     if (t && !this.airborne && this.speed > 1.5 && Math.sign(Math.sin(this.phase)) !== Math.sign(before))
-      this.onStep?.(this.swimming ? "water" : t.slopeAt(p.x, p.z) > 30 || p.y / 0.3 > 2400 ? "rock" : "grass");
+      this.onStep?.(this.swimming ? "water" : p.y / 0.3 > 2950 ? "snow" : t.slopeAt(p.x, p.z) > 30 || p.y / 0.3 > 2400 ? "rock" : "grass");
     const sw = Math.sin(this.phase) * 0.75 * amt;
     this.resetLimbs();
     this.legL.rotation.z = this.legR.rotation.z = 0;

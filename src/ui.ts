@@ -2,6 +2,7 @@ import { sound } from "./audio";
 import { FACTS, ITEMS, PACK_SLOTS, SUMMITS, type Fact, type Topic } from "./content";
 import { SUBJECTS, SUBJECT_IDS } from "./nature";
 import { addLayer } from "./input";
+import { SOUND_CREDITS } from "./sound-credits";
 import { ALBUM_MAX, album, exportSave, importSave, notebook, state } from "./state";
 
 /**
@@ -445,6 +446,7 @@ export const CREDITS = `
   <p>Terreno: Copernicus GLO-30 Digital Elevation Model, © DLR e Airbus, programma Copernicus dell'Unione europea.</p>
   <p>Mappe (sentieri, rifugi, cime, laghi, ghiacciai, boschi, strade): © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">contributori OpenStreetMap</a>, dati disponibili con licenza ODbL.</p>
   <p>Caratteri: Bricolage Grotesque e Geist (SIL Open Font License). Grafica 3D: three.js (licenza MIT).</p>
+  <p>Suoni registrati, da Wikimedia Commons e Kenney: ${SOUND_CREDITS}.</p>
   <p>Ideato e realizzato da Vittoria Bassi.</p>`;
 export function openCredits() {
   panelOpen = busy = true;

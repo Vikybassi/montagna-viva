@@ -443,7 +443,7 @@ function snapshot() {
 // prove automatiche: ?debug espone un teletrasporto e lo stato del gioco
 if (q.has("debug"))
   Object.assign(window, {
-    __mv: { ...play.debug, obstacles, weather: play.weather, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
+    __mv: { ...play.debug, obstacles, weather: play.weather, sound, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
   });
 
 // le ombre delle montagne, lette da tutti i materiali (anche persone e animali appena aggiunti)
