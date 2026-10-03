@@ -2,6 +2,29 @@
 
 Le versioni seguono le tappe della [roadmap](ROADMAP.md).
 
+## 0.2.0 · M1, architettura e logiche (in arrivo)
+
+Dentro il gioco cambia poco a vista, ma tutto è più solido: regole chiare per cosa seguire, tasti che fanno una cosa
+sola, muri veri, orologio che può saltare senza rompere niente.
+
+**Cosa si nota giocando**
+
+- Case, rifugi, bivacchi, campanili e tronchi sono solidi: si scivola lungo i muri, la telecamera non entra nelle case.
+- Ai bivi a T la strada dice sempre da che parte andare (prima a volte taceva).
+- Chiudere con E l'ultimo dialogo vicino a una persona non fa ripartire la conversazione.
+- Dormendo durante un temporale, la mattina dopo è sereno, senza arcobaleno notturno e senza telefonate di Marta per un
+  temporale già finito.
+- Dal secondo giorno in poi: rientro «con la luce», avviso del buio (una volta per sera) e consigli di Giulio giusti.
+- Pausa: esporta e importa la partita in un file; un salvataggio rotto non blocca il gioco (se ne tiene una copia).
+
+**Dentro**
+
+- `play.ts` diviso in `src/game/`: valle, persone e missioni, arrampicata, strade, temporale, guida, interazioni.
+- Un motore unico delle missioni (`QuestEngine`): emergenza › corsa › quella che scegli di seguire.
+- Un gestore unico dei tasti a livelli (`src/input.ts`) e gli ostacoli solidi (`src/collide.ts`).
+- Salvataggi con versione, migrazioni, controllo dei campi, esporta/importa.
+- 51 prove veloci e 8 prove nel browser; i casi limite sono elencati in [tests/CASI.md](tests/CASI.md).
+
 ## 0.1.0 · M0, fondamenta (3 ottobre 2026)
 
 Il prototipo entra in un repository, con prove automatiche e verifica a ogni push.
