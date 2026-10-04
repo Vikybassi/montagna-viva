@@ -70,6 +70,7 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 26e | Bere | Senza borraccia, B lo dice; un sorso toglie la sete e ridà fiato (sette sorsi); fontane e rifugi riempiono; con la borraccia vuota vicino a un torrente si impara che l'acqua limpida non è per forza buona | unit `thirst`, e2e `drink` |
 | 26f | Rifugi e bivacchi col bel tempo | Si entra sempre (23 su 23, tutti con la porta libera): riposo mezz'ora, al rifugio acqua; vale «al riparo» solo col temporale | e2e `huts` |
 | 26g | Il riquadro del fiato | Sempre sopra i pulsanti in basso, mai coperto dal telefonino | a mano (misura: nessuna sovrapposizione) |
+| 26h | Su telefono, un dialogo o un pannello aperto | I pulsanti di gioco, la riga dei comandi e la pillola in basso si fanno da parte: non coprono parole e pulsanti | a mano (giro su schermo 390×844) |
 | 26c | Una foto nuova | Puntino sulla scheda Foto; album e taccuino nel telefono; un tocco ingrandisce, Esc richiude solo la foto | e2e `photo` |
 
 ## Tempo e meteo (l'orologio che salta)

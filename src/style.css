@@ -566,3 +566,7 @@ body.finding .goal, body.finding .tools, body.finding #hint, body.finding .netpi
 .cairn-card .mini-btn { margin-top: 12px; }
 .mini-quit { display: block; margin: 10px auto 0; padding: 4px 10px; border: 0; background: none; color: #6a5d70; font: 600 12px var(--display); cursor: pointer; }
 @media (max-height: 700px) { .cairn-card canvas { max-width: 270px; } .cairn-card .mini-t { margin-bottom: 8px; } }
+
+/* il gioco aspetta (dialogo, pannello, telefono, rifugio): i pulsanti di gioco e la riga dei comandi si fanno da parte */
+body.busy .tools, body.busy #hint, body.busy .run, body.busy .netpill { opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+body.busy .tools { visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; }

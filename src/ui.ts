@@ -100,6 +100,12 @@ dlg.setAttribute("role", "dialog");
 dlg.setAttribute("aria-live", "polite");
 root.appendChild(dlg);
 export let busy = false;
+/** quando il gioco aspetta (dialogo, pannello, telefono, rifugio, telefonata): sotto i pulsanti di gioco si nascondono,
+ * così non coprono il dialogo (su telefono stavano sopra le parole e i pulsanti) */
+const setBusy = (v: boolean) => {
+  busy = v;
+  document.body.classList.toggle("busy", v);
+};
 let pending: ((i: number) => void) | null = null;
 
 /** i ritratti di chi parla (giacca, cappello, capelli: gli stessi colori della figura nel mondo) */
@@ -117,7 +123,7 @@ function portrait(speaker: string) {
 }
 
 export function say(speaker: string, text: string, options: string[] = ["Continua"]): Promise<number> {
-  busy = true;
+  setBusy(true);
   const [name, role] = speaker.split(/, (.+)/);
   dlg.innerHTML = `${portrait(speaker)}<div class="dlg-in"><p class="who"><b>${esc(name)}</b>${role ? `<span>${esc(role)}</span>` : ""}</p><p class="what">${text}</p><div class="opts"></div></div>`;
   // il fumetto "spunta" ogni volta, anche se il precedente era ancora aperto
@@ -158,7 +164,7 @@ addLayer({
 // ---------- pannelli (zaino da preparare, pausa, crediti) ----------
 let panelOpen = false;
 let phoneOpen = false, insideOpen = false, callOpen = false;
-const refreshBusy = () => (busy = panelOpen || !!pending || phoneOpen || insideOpen || callOpen);
+const refreshBusy = () => setBusy(panelOpen || !!pending || phoneOpen || insideOpen || callOpen);
 /** il telefono è aperto: il gioco si ferma come per un pannello */
 export function setPhoneOpen(v: boolean) {
   phoneOpen = v;
@@ -242,7 +248,8 @@ export function packHtml() {
 let packResolve: ((ids: string[]) => void) | null = null;
 /** apre lo zaino; se `choose`, chiede di scegliere e restituisce la scelta */
 export function openPack(choose: boolean): Promise<string[]> {
-  panelOpen = busy = true;
+  panelOpen = true;
+  setBusy(true);
   const picked = new Set(state.pack);
   const render = () => {
     const list = ITEMS.map((it) => {
@@ -469,7 +476,8 @@ export const CREDITS = `
   <p>Suoni registrati, da Wikimedia Commons e Kenney: ${SOUND_CREDITS}.</p>
   <p>Ideato e realizzato da Vittoria Bassi.</p>`;
 export function openCredits() {
-  panelOpen = busy = true;
+  panelOpen = true;
+  setBusy(true);
   panel.innerHTML = `<div class="sheet"><button type="button" class="x" aria-label="Chiudi">×</button><h2>Avvertenze e crediti</h2>${CREDITS}</div>`;
   panel.querySelector(".x")!.addEventListener("click", closePanel);
   panel.classList.add("on");
@@ -484,7 +492,8 @@ export type PauseOpts = {
   onReset: () => void;
 };
 export function openPause(o: PauseOpts) {
-  panelOpen = busy = true;
+  panelOpen = true;
+  setBusy(true);
   const s = { ...o.settings };
   panel.innerHTML = `<div class="sheet pause"><button type="button" class="x" aria-label="Riprendi">×</button><h2>Pausa</h2>
     <p class="sub">${o.shared ? "Sei in compagnia: il tempo della valle intanto va avanti." : "Il tempo della valle è fermo."}</p>
