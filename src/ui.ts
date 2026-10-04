@@ -61,18 +61,81 @@ export function setQuest(title: string | null, steps: QuestStep[], other: typeof
 }
 
 // ---------- avvisi ----------
+// Due canali, per non coprire la scena:
+// - i messaggi (consigli, avvisi, storia) in alto al centro, uno alla volta, in fila; quelli importanti passano avanti;
+// - le ricompense (compiti, diario, timbri) piccole in alto a sinistra, al massimo tre.
 const toasts = el("div", "toasts");
 toasts.setAttribute("aria-live", "polite");
 root.appendChild(toasts);
+const chips = el("div", "chips");
+chips.setAttribute("aria-live", "polite");
+root.appendChild(chips);
+const queue: { html: string; kind: string }[] = [];
+let showing: HTMLElement | null = null, hideTimer = 0;
+const textLen = (html: string) => html.replace(/<[^>]+>/g, "").length;
+function hideCurrent(after: number) {
+  clearTimeout(hideTimer);
+  hideTimer = window.setTimeout(() => {
+    const t = showing;
+    if (!t) return;
+    t.classList.remove("on");
+    setTimeout(() => {
+      t.remove();
+      if (showing === t) showing = null;
+      showNext();
+    }, 350);
+  }, after);
+}
+function showNext() {
+  if (showing || !queue.length) return;
+  const { html, kind } = queue.shift()!;
+  const t = el("div", `toast ${kind}`, html);
+  t.dataset.html = html;
+  toasts.appendChild(t);
+  showing = t;
+  requestAnimationFrame(() => t.classList.add("on"));
+  // il tempo per leggerlo (più breve se altri aspettano)
+  const read = Math.min(7000, Math.max(2600, 1800 + textLen(html) * 45));
+  hideCurrent(queue.length ? Math.min(read, 3000) : read);
+}
 export function toast(html: string, kind = "") {
   if (kind.includes("stamp")) newsFn("spille");
-  const t = el("div", `toast ${kind}`, html);
-  toasts.appendChild(t);
-  requestAnimationFrame(() => t.classList.add("on"));
-  setTimeout(() => {
-    t.classList.remove("on");
-    setTimeout(() => t.remove(), 600);
-  }, 4200);
+  // le ricompense: piccole, a lato
+  if (/\b(task|fact|stamp)\b/.test(kind)) {
+    const c = el("div", `toast chip ${kind}`, html);
+    chips.appendChild(c);
+    while (chips.children.length > 3) chips.firstElementChild!.remove();
+    requestAnimationFrame(() => c.classList.add("on"));
+    setTimeout(() => {
+      c.classList.remove("on");
+      setTimeout(() => c.remove(), 400);
+    }, 3800);
+    return;
+  }
+  // i numeri grandi (3, 2, 1, via!) subito, al posto di quello che c'è
+  if (html.includes('class="big"')) {
+    queue.unshift({ html, kind });
+    if (showing) hideCurrent(0);
+    else showNext();
+    return;
+  }
+  // niente doppioni
+  if (showing?.dataset.html === html || queue.some((q) => q.html === html)) return;
+  if (kind.includes("now")) {
+    // la risposta a un tuo gesto (un sorso, un tuffo): subito, al posto di quello che c'è
+    queue.unshift({ html, kind });
+    if (showing) hideCurrent(0);
+  } else if (kind.includes("warn")) {
+    // gli avvisi importanti passano avanti, e accorciano quello che si sta leggendo
+    queue.unshift({ html, kind });
+    if (showing && !showing.classList.contains("warn")) hideCurrent(500);
+  } else queue.push({ html, kind });
+  // in fila al massimo cinque: i più vecchi (non importanti) lasciano il posto
+  while (queue.length > 5) {
+    const i = queue.findIndex((q) => !q.kind.includes("warn"));
+    queue.splice(i >= 0 ? i : queue.length - 1, 1);
+  }
+  showNext();
 }
 export function learned(f: Fact | null) {
   if (!f) return;
@@ -100,6 +163,12 @@ dlg.setAttribute("role", "dialog");
 dlg.setAttribute("aria-live", "polite");
 root.appendChild(dlg);
 export let busy = false;
+/** quando il gioco aspetta (dialogo, pannello, telefono, rifugio, telefonata): sotto i pulsanti di gioco si nascondono,
+ * così non coprono il dialogo (su telefono stavano sopra le parole e i pulsanti) */
+const setBusy = (v: boolean) => {
+  busy = v;
+  document.body.classList.toggle("busy", v);
+};
 let pending: ((i: number) => void) | null = null;
 
 /** i ritratti di chi parla (giacca, cappello, capelli: gli stessi colori della figura nel mondo) */
@@ -117,7 +186,7 @@ function portrait(speaker: string) {
 }
 
 export function say(speaker: string, text: string, options: string[] = ["Continua"]): Promise<number> {
-  busy = true;
+  setBusy(true);
   const [name, role] = speaker.split(/, (.+)/);
   dlg.innerHTML = `${portrait(speaker)}<div class="dlg-in"><p class="who"><b>${esc(name)}</b>${role ? `<span>${esc(role)}</span>` : ""}</p><p class="what">${text}</p><div class="opts"></div></div>`;
   // il fumetto "spunta" ogni volta, anche se il precedente era ancora aperto
@@ -157,8 +226,8 @@ addLayer({
 
 // ---------- pannelli (zaino da preparare, pausa, crediti) ----------
 let panelOpen = false;
-let phoneOpen = false, insideOpen = false, callOpen = false;
-const refreshBusy = () => (busy = panelOpen || !!pending || phoneOpen || insideOpen || callOpen);
+let phoneOpen = false, insideOpen = false, callOpen = false, travelOpen = false;
+const refreshBusy = () => setBusy(panelOpen || !!pending || phoneOpen || insideOpen || callOpen || travelOpen);
 /** il telefono è aperto: il gioco si ferma come per un pannello */
 export function setPhoneOpen(v: boolean) {
   phoneOpen = v;
@@ -242,7 +311,8 @@ export function packHtml() {
 let packResolve: ((ids: string[]) => void) | null = null;
 /** apre lo zaino; se `choose`, chiede di scegliere e restituisce la scelta */
 export function openPack(choose: boolean): Promise<string[]> {
-  panelOpen = busy = true;
+  panelOpen = true;
+  setBusy(true);
   const picked = new Set(state.pack);
   const render = () => {
     const list = ITEMS.map((it) => {
@@ -314,6 +384,43 @@ addLayer({
     else if (k === "escape") e.preventDefault(), decline?.();
   },
 });
+
+// ---------- il viaggio in corriera: dopo pochi secondi sei arrivata ----------
+const trip = el("div", "travel");
+trip.setAttribute("aria-live", "polite");
+trip.innerHTML = `<div class="tr-sun"></div><div class="tr-far"></div><div class="tr-hills"></div><div class="tr-trees"></div><div class="tr-ground"></div><div class="tr-road"><i></i></div>
+  <svg class="tr-bus" viewBox="0 0 220 110" aria-hidden="true"><g class="tr-body"><rect x="6" y="14" width="208" height="68" rx="16" fill="#2d6bd0"/><rect x="6" y="52" width="208" height="12" fill="#ffd84d"/><rect x="22" y="26" width="38" height="26" rx="6" fill="#d8eefb"/><rect x="68" y="26" width="38" height="26" rx="6" fill="#d8eefb"/><rect x="114" y="26" width="38" height="26" rx="6" fill="#d8eefb"/><rect x="164" y="22" width="40" height="40" rx="8" fill="#d8eefb"/><circle cx="26" cy="72" r="5" fill="#fff3a6"/><circle cx="46" cy="74" r="12" fill="#2a2e3a"/></g><g class="tr-wheel" style="transform-origin:46px 84px"><circle cx="46" cy="84" r="16" fill="#2a2e3a"/><circle cx="46" cy="84" r="7" fill="#b9bfd0"/><path d="M46 70v28M32 84h28" stroke="#6b7186" stroke-width="3"/></g><g class="tr-wheel" style="transform-origin:170px 84px"><circle cx="170" cy="84" r="16" fill="#2a2e3a"/><circle cx="170" cy="84" r="7" fill="#b9bfd0"/><path d="M170 70v28M156 84h28" stroke="#6b7186" stroke-width="3"/></g></svg>
+  <div class="tr-card"><p class="tr-k">Corriera per</p><h2 class="tr-t"></h2><p class="tr-from"></p><p class="tr-clock"></p><p class="tr-skip">Spazio o clic per arrivare subito</p></div>`;
+root.appendChild(trip);
+let tripSkip = false;
+trip.addEventListener("click", () => (tripSkip = true));
+addLayer({ name: "viaggio", priority: 95, modal: true, active: () => travelOpen, key: (k, e) => {
+  if (k === " " || k === "enter" || k === "escape") e.preventDefault(), (tripSkip = true);
+} });
+/** si è chiesto di saltare il resto del viaggio */
+export const travelSkipped = () => tripSkip;
+/**
+ * Il viaggio: la schermata si accende, `run` fa passare il tempo e porta la giocatrice a destinazione (mentre tutto è
+ * coperto), poi si riapre sul posto. `setClock` aggiorna l'ora sul finestrino.
+ */
+export async function travel(o: { from: string; to: string }, run: (setClock: (t: string) => void) => Promise<void>) {
+  tripSkip = false;
+  trip.querySelector(".tr-t")!.textContent = o.to;
+  trip.querySelector(".tr-from")!.textContent = `da ${o.from}`;
+  travelOpen = true;
+  refreshBusy();
+  trip.classList.add("on");
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  trip.classList.add("show");
+  await new Promise((r) => setTimeout(r, 450));
+  await run((t) => (trip.querySelector(".tr-clock")!.textContent = t));
+  await new Promise((r) => setTimeout(r, tripSkip ? 80 : 350));
+  trip.classList.remove("show");
+  await new Promise((r) => setTimeout(r, 450));
+  trip.classList.remove("on");
+  travelOpen = false;
+  refreshBusy();
+}
 
 // ---------- dentro un rifugio o un bivacco (al riparo dal temporale) ----------
 const inside = el("div", "inside");
@@ -403,10 +510,17 @@ const top = el("div", "topbtns");
 top.innerHTML = `<button type="button" data-k="sound" class="soundbtn" aria-pressed="true" aria-label="Suono">♪</button><button type="button" data-k="pause" aria-label="Pausa e impostazioni">☰</button>`;
 root.appendChild(top);
 const bar = el("div", "tools");
-bar.innerHTML = `<button type="button" data-k="camera" class="camerabtn" aria-label="Fotocamera (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-k="jump" class="touchbtn">Salta / Vola</button><button type="button" data-k="run" class="runbtn" aria-pressed="false">Corri</button><button type="button" data-k="drink" class="drinkbtn" aria-label="Bevi un sorso (B)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v3l2 2v13a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7l2-2z"/></svg><i class="drink-lvl" aria-hidden="true"></i></button><button type="button" data-k="phone" class="miniphone" aria-label="Apri il telefono (Tab)"><span class="mp-screen"><b class="mp-time">14:00</b></span><i class="mp-dot" aria-hidden="true"></i><span class="mp-wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cairn"/></svg><b class="mp-ometti">0</b><span class="sr">ometti</span></span></button>`;
+bar.innerHTML = `<button type="button" data-k="camera" class="camerabtn" aria-label="Fotocamera (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-k="jump" class="touchbtn">Salta / Vola</button><button type="button" data-k="run" class="runbtn" aria-pressed="false">Corri</button><button type="button" data-k="drink" class="drinkbtn" aria-label="Bevi un sorso (B)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v3l2 2v13a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7l2-2z"/></svg><i class="drink-lvl" aria-hidden="true"></i></button><div class="miniphone" role="group" aria-label="Telefono"><span class="mp-screen"><button type="button" data-k="phone" class="mp-top" aria-label="Apri il telefono (Tab)"><b class="mp-time">14:00</b></button><span class="mp-grid"><button type="button" data-k="phone" data-tab="missioni" class="mp-icon mp-missioni" aria-label="Missioni"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4M6 4h11l-2 4 2 4H6"/></svg><i class="mp-idot" aria-hidden="true"></i></button><button type="button" data-k="phone" data-tab="mappa" class="mp-icon mp-mappa" aria-label="Mappa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.5-6-10a6 6 0 0 1 12 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg><i class="mp-idot" aria-hidden="true"></i></button><button type="button" data-k="phone" data-tab="foto" class="mp-icon mp-foto" aria-label="Foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><i class="mp-idot" aria-hidden="true"></i></button><button type="button" data-k="phone" data-tab="zaino" class="mp-icon mp-zaino" aria-label="Zaino"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9a5 5 0 0 1 10 0v11H7zM9 4h6M7 14h10M10 14v2"/></svg><i class="mp-idot" aria-hidden="true"></i></button></span><span class="mp-wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cairn"/></svg><b class="mp-ometti">0</b><span class="sr">ometti</span></span></span><i class="mp-dot" aria-hidden="true"></i></div>`;
 root.appendChild(bar);
+// l'altezza dei pulsanti in basso (cambia col telefonino, su telefono vanno a capo): il riquadro del fiato sta sopra
+try {
+  new ResizeObserver(() => document.documentElement.style.setProperty("--tools-h", `${bar.offsetHeight}px`)).observe(bar);
+} catch {
+  /* browser vecchio: resta il valore di riserva */
+}
 export const tools = {
-  onPhone: () => {},
+  /** apre il telefono (sulla scheda data, dalle icone del telefonino) */
+  onPhone: (_tab?: PhoneTab) => {},
   onFollow: (_kind: "missione" | "commissione") => {},
   /** riprendere una missione iniziata e lasciata a metà */
   onResume: (_id: string) => {},
@@ -419,8 +533,9 @@ export const tools = {
 };
 for (const b of [top, bar])
   b.addEventListener("click", (e) => {
-    const k = (e.target as HTMLElement).closest("button")?.dataset.k;
-    if (k === "phone") tools.onPhone();
+    const btn = (e.target as HTMLElement).closest("button");
+    const k = btn?.dataset.k;
+    if (k === "phone") tools.onPhone(btn?.dataset.tab as PhoneTab | undefined);
     if (k === "camera") tools.onCamera();
     if (k === "run") tools.onRun();
     if (k === "drink") tools.onDrink();
@@ -461,7 +576,8 @@ export const CREDITS = `
   <p>Suoni registrati, da Wikimedia Commons e Kenney: ${SOUND_CREDITS}.</p>
   <p>Ideato e realizzato da Vittoria Bassi.</p>`;
 export function openCredits() {
-  panelOpen = busy = true;
+  panelOpen = true;
+  setBusy(true);
   panel.innerHTML = `<div class="sheet"><button type="button" class="x" aria-label="Chiudi">×</button><h2>Avvertenze e crediti</h2>${CREDITS}</div>`;
   panel.querySelector(".x")!.addEventListener("click", closePanel);
   panel.classList.add("on");
@@ -476,7 +592,8 @@ export type PauseOpts = {
   onReset: () => void;
 };
 export function openPause(o: PauseOpts) {
-  panelOpen = busy = true;
+  panelOpen = true;
+  setBusy(true);
   const s = { ...o.settings };
   panel.innerHTML = `<div class="sheet pause"><button type="button" class="x" aria-label="Riprendi">×</button><h2>Pausa</h2>
     <p class="sub">${o.shared ? "Sei in compagnia: il tempo della valle intanto va avanti." : "Il tempo della valle è fermo."}</p>

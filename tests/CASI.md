@@ -68,6 +68,13 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 26b | In parete, presa dopo presa | Braccia e gambe mai incrociate: ogni arto va dal lato della sua spalla o anca (il modello aveva i lati scambiati) | e2e `boulder` |
 | 26d | I suoni registrati | Tutti e 34 scaricati e decodificati; se uno manca il gioco va avanti senza | e2e `smoke` |
 | 26e | Bere | Senza borraccia, B lo dice; un sorso toglie la sete e ridà fiato (sette sorsi); fontane e rifugi riempiono; con la borraccia vuota vicino a un torrente si impara che l'acqua limpida non è per forza buona | unit `thirst`, e2e `drink` |
+| 26f | Rifugi e bivacchi col bel tempo | Si entra sempre (23 su 23, tutti con la porta libera): riposo mezz'ora, al rifugio acqua; vale «al riparo» solo col temporale | e2e `huts` |
+| 26g | Il riquadro del fiato | Sempre sopra i pulsanti in basso, mai coperto dal telefonino | a mano (misura: nessuna sovrapposizione) |
+| 26h | Su telefono, un dialogo o un pannello aperto | I pulsanti di gioco, la riga dei comandi e la pillola in basso si fanno da parte: non coprono parole e pulsanti | a mano (giro su schermo 390×844) |
+| 26i | Il ghiacciaio di Preda Rossa tra un anno e l'altro | Si vede cambiare: 1850 bianco pieno, 1950 più piccolo, oggi con la roccia scoperta, 2050 ancora meno; Elena dice quanto ghiaccio c'è rispetto a oggi (sopra i 2950 m il terreno senza ghiaccio era già bianco: il ritiro non si vedeva) | e2e `glacier` |
+| 26j | Panorama da rifugi, bivacchi e belvedere | Ogni punto ha «Guarda il panorama» libero (23 rifugi e bivacchi); le cime si vedono solo se la linea di vista sul terreno è libera, una per direzione, senza quote senza nome; dall'Omio almeno tre cime; conta per i compiti e per il diario | unit `panorama`, e2e `panorama` |
+| 26k | Fontane e sorgenti | Sono i 35 punti veri di OpenStreetMap (più una fontana di paese dove non ce n'è una vicina) | e2e `panorama`, `drink` |
+| 26l | Corriera tra i paesi | 7 fermate libere e con l'invito; corsa ogni mezz'ora dalle 7 alle 19; si aspetta la prossima, si sceglie dove andare, il viaggio dura pochi secondi e l'orologio avanza di attesa e viaggio; si arriva davanti alla pensilina; dopo le 19 e col temporale non parte; chi ti segue (Luca) sale con te; in compagnia il tempo non avanza | unit `timetable`, e2e `bus` |
 | 26c | Una foto nuova | Puntino sulla scheda Foto; album e taccuino nel telefono; un tocco ingrandisce, Esc richiude solo la foto | e2e `photo` |
 
 ## Tempo e meteo (l'orologio che salta)

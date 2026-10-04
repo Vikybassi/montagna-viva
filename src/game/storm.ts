@@ -86,21 +86,26 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
       hiker.root.position.y = T.heightAt(hiker.root.position.x, hiker.root.position.z);
     });
     hiker.root.visible = false;
-    sheltered = true;
-    state.sheltered = true;
-    save();
-    sound.ui("done");
     const stormy = weather.phase !== "clear";
+    // al riparo dal temporale (vale per il compito) solo se fuori c'è davvero maltempo
+    if (stormy) {
+      sheltered = true;
+      state.sheltered = true;
+      save();
+    }
+    sound.ui("done");
     const text = kind === "rifugio"
       ? `Dentro c'è un bel tepore e profumo di minestra. ${stormy ? "Fuori piove forte e tuona: qui sei al sicuro." : "Fuori il cielo è sereno."}`
       : `È un riparo piccolo e spartano, ma asciutto. ${stormy ? "Senti la pioggia battere sulla lamiera: qui sei al sicuro." : "Fuori il cielo è sereno."} I bivacchi sono sempre aperti: si lasciano puliti per chi arriva dopo.`;
-    ui.learned(learn(kind === "bivacco" ? "bivacco" : "temporale"));
+    if (stormy || kind === "bivacco") ui.learned(learn(kind === "bivacco" ? "bivacco" : "temporale"));
     showInterior(p, kind, text, door);
   }
   function showInterior(p: Place, kind: "rifugio" | "bivacco", text: string, door: Door) {
     const stormy = weather.phase !== "clear";
     const buttons: { label: string; fn: () => void }[] = [];
     if (stormy && !c.sharedTime()) buttons.push({ label: `Aspetta che passi (fino alle ${hhmm(weather.endsAt)})`, fn: () => void waitStorm(p, kind, door) });
+    // col bel tempo: riposarsi, e (al rifugio) bere e riempire la borraccia
+    if (!stormy) for (const b of extraButtons(p, kind)) buttons.push({ label: b.label, fn: () => void Promise.resolve(b.fn()).then((t) => showInterior(p, kind, t ?? text, door)) });
     buttons.push({ label: stormy ? "Esci comunque" : "Esci", fn: () => void exitShelter(door) });
     if (stormy && c.sharedTime()) text += " <small>In compagnia il tempo è di tutti: aspetta qui dentro che passi.</small>";
     ui.showInside({ kind, name: p.name, text, clock: hhmmNow(), rain: stormy, buttons });
@@ -128,11 +133,17 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
     .filter((h) => h.kind === "rifugio" || h.kind === "bivacco")
     .flatMap((h) => {
       const d = c.doors.get(h.name);
-      return d ? [{ pos: d.front, r: 4, text: () => (weather.phase !== "clear" && !indoors ? `Entra nel ${h.kind === "bivacco" ? "bivacco" : "rifugio"} al riparo` : null), act: () => void enterShelter(h, d) }] : [];
+      // si entra sempre: col maltempo per ripararsi, col bel tempo per riposare (e al rifugio per bere)
+      return d ? [{ pos: d.front, r: 4, text: () => (indoors ? null : `Entra nel ${h.kind === "bivacco" ? "bivacco" : "rifugio"}${weather.phase !== "clear" ? " al riparo" : ""}`), act: () => void enterShelter(h, d) }] : [];
     });
 
+  /** i pulsanti in più dentro, col bel tempo (li aggiunge chi gestisce acqua e fiato): restituiscono il testo nuovo */
+  let extraButtons: (p: Place, kind: "rifugio" | "bivacco") => { label: string; fn: () => string | void | Promise<string | void> }[] = () => [];
   return {
     weather, quest, interacts,
+    setExtraButtons(f: typeof extraButtons) {
+      extraButtons = f;
+    },
     get indoors() {
       return indoors;
     },

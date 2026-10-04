@@ -87,6 +87,10 @@ TASKS.push(
   t("ev-elisoccorso", "meraviglie", "L'elisoccorso", "Di giorno, col sereno, ogni tanto risale la valle: fermati a guardarlo.", 10, () => saw("elisoccorso")),
   t("ev-arcobaleno", "meraviglie", "Un arcobaleno", "Dopo il temporale, col sole alle spalle.", 10, () => saw("arcobaleno")),
   t("ev-foto-arcobaleno", "meraviglie", "La foto dell'arcobaleno", "Fotocamera (P) verso l'arcobaleno, prima che svanisca.", 20, () => saw("foto-arcobaleno")),
+  t("panorami", "meraviglie", "Dall'alto, con i nomi", "Dai rifugi, dai bivacchi e dai belvedere premi E su «Guarda il panorama»: scopri quali cime vedi.", 25, () => state.views.length, 5),
+  t("panorami2", "meraviglie", "Dodici panorami", "Ogni rifugio ha la sua finestra sulla valle: guardane dodici.", 50, () => state.views.length, 12),
+  t("corriera", "meraviglie", "Una corsa in corriera", "Alla fermata di un paese lungo la strada: aspetta la corsa e scegli dove andare.", 10, () => Math.min(1, state.rides.length)),
+  t("corriera4", "meraviglie", "Il giro dei paesi", "Arriva in corriera in quattro paesi diversi.", 25, () => state.rides.length, 4),
   t("ev-stella", "meraviglie", "Una stella cadente", "Di notte, col cielo sereno, guarda in alto.", 10, () => saw("stella")),
 );
 

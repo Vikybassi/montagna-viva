@@ -4,6 +4,7 @@ import { Hiker } from "./player";
 import { learn, save, state } from "./state";
 import * as ui from "./ui";
 import type { Terrain } from "./world";
+import { LOOKS } from "./looks";
 
 /**
  * Gli incontri lungo i sentieri: persone con una piccola richiesta. Ognuna insegna una cosa vera della montagna, senza
@@ -71,7 +72,7 @@ export function buildEncounters(c: EncounterCtx) {
 
   // ---------- 1. Luca, smarrito vicino al Sasso Remenno: ti segue fino a San Martino ----------
   const lucaStart = near(c.places.remenno ?? c.places.martino, 42, -38);
-  const luca = person({ jacket: "#6a8fc0", hat: "#3b3550", pack: "#e07d3e", hair: "#c9a440" }, lucaStart, "Luca", done("luca") ? "" : "ha bisogno di aiuto");
+  const luca = person(LOOKS.Luca, lucaStart, "Luca", done("luca") ? "" : "ha bisogno di aiuto");
   let following = false, waitWarned = false, stuck = 0;
   luca.h.groundFn = (x, z) => hiker.groundFn?.(x, z) ?? null; // non attraversa il Sasso Remenno (né i blocchi)
   if (done("luca")) luca.h.root.position.copy(near(c.places.martino, 14, -6));
@@ -93,7 +94,7 @@ export function buildEncounters(c: EncounterCtx) {
 
   // ---------- 2. Giorgia, in infradito a Bagni di Masino ----------
   if (c.places.bagni) {
-    const g = person({ jacket: "#f2b632", hat: "#e05a8f", pack: "#e9dcc0", hair: "#3a2a20" }, near(c.places.bagni, 12, 8), "Giorgia", done("giorgia") ? "" : "ha bisogno di un consiglio");
+    const g = person(LOOKS.Giorgia, near(c.places.bagni, 12, 8), "Giorgia", done("giorgia") ? "" : "ha bisogno di un consiglio");
     interacts.push({
       pos: g.h.root.position, r: 6,
       text: () => (done("giorgia") ? "Saluta Giorgia" : "Parla con Giorgia"),
@@ -114,7 +115,7 @@ export function buildEncounters(c: EncounterCtx) {
   }
 
   // ---------- 3. Il pane di Rosa per Giulio, all'Omio ----------
-  const rosa = person({ jacket: "#e9dcc0", hat: "#ffffff", pack: "#c2375a", hair: "#8a5a3a" }, near(c.places.martino, -10, 34), "Rosa", done("pane") ? "panettiera" : "ha una commissione");
+  const rosa = person(LOOKS.Rosa, near(c.places.martino, -10, 34), "Rosa", done("pane") ? "panettiera" : "ha una commissione");
   interacts.push({
     pos: rosa.h.root.position, r: 6,
     text: () => (done("pane") ? "Saluta Rosa" : "Parla con Rosa"),
@@ -144,7 +145,7 @@ export function buildEncounters(c: EncounterCtx) {
   // ---------- 4. Il cappello di Tommaso, a Filorera ----------
   let hatMesh: THREE.Group | null = null;
   if (c.places.filorera) {
-    const kid = person({ jacket: "#e07d3e", hat: "#f4e4de", pack: "#2f8f8a", hair: "#3a2a20" }, near(c.places.filorera, 10, -12), "Tommaso", done("cappello") ? "" : "ha perso qualcosa", 0.7);
+    const kid = person(LOOKS.Tommaso, near(c.places.filorera, 10, -12), "Tommaso", done("cappello") ? "" : "ha perso qualcosa", 0.7);
     // il cappello: rosso, appeso a un cespuglio un po' più su, che dondola e luccica
     hatMesh = new THREE.Group();
     const red = new THREE.MeshStandardMaterial({ color: "#d8433a", flatShading: true });
@@ -250,6 +251,12 @@ export function buildEncounters(c: EncounterCtx) {
         }
       } else luca.h.update(dt, still, false, t);
       luca.label.pos.set(p.x, p.y + 2.6, p.z);
+    },
+    /** viaggi veloci (la corriera): chi ti sta seguendo sale con te e ti ritrovi accanto */
+    escort(to: THREE.Vector3) {
+      if (!following) return;
+      luca.h.root.position.set(to.x - 2, to.y, to.z - 1.5);
+      luca.h.root.position.y = t.heightAt(luca.h.root.position.x, luca.h.root.position.z);
     },
     /** da Giulio all'Omio: se porti il pane di Rosa, prima di tutto glielo dai */
     async deliver(to: "omio") {

@@ -6,6 +6,7 @@ import { SunMap } from "./sunmap";
 import { setupPlay } from "./play";
 import { Boulder } from "./climb";
 import { Obstacles } from "./collide";
+import { Grass, buildBushes, grassUniforms } from "./grass";
 import { sound } from "./audio";
 import { addLayer, held, onKeyUp, top as topLayer } from "./input";
 import { learn, loadProblem, wipeProgress } from "./state";
@@ -42,8 +43,9 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+// colori pieni (l'ACES li spegneva): stile cartone, come Coastal World
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.0;
 canvasHost.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -56,7 +58,22 @@ const terrainMesh = buildTerrainMesh(T, cover);
 // oltre il bordo della mappa: altre creste nella foschia, non il vuoto
 scene.add(buildSkirt(T));
 scene.add(terrainMesh);
-scene.add(buildTrails(T, data));
+const trails = buildTrails(T, data, cover);
+scene.add(trails.group);
+// erba intorno a te e cespugli ai bordi dei sentieri (niente sulle piazze dei paesi)
+const squares = data.huts.filter((h) => h.kind === "paese").map((h) => [h.p[0] * S, h.p[1] * S] as [number, number]);
+const grass = new Grass(T, cover, trails.near, squares);
+scene.add(grass.mesh);
+const bushes = buildBushes(T, cover, data, trails.near, squares);
+scene.add(bushes.mesh);
+/** il colore del prato in un punto (dal terreno), un filo più chiaro: i ciuffi si confondono col prato */
+const grassColor = (() => {
+  const colors = terrainMesh.geometry.attributes.color as THREE.BufferAttribute, cols = T.meta.cols;
+  return (x: number, z: number, out: THREE.Color) => {
+    const c = Math.round(x / T.cell), r = Math.round(z / T.cell), i = r * cols + c;
+    return out.setRGB(colors.getX(i), colors.getY(i), colors.getZ(i)).multiplyScalar(1.12);
+  };
+})();
 scene.add(buildLakes(T));
 const trees = buildTrees(T, cover, rng, rock ? (x, z) => rock.covers(x, z, 2) : undefined);
 scene.add(trees.group);
@@ -394,6 +411,7 @@ const play = setupPlay({
   place: () => currentPlace,
   sunDir: () => sky.dir,
   doors: places.doors,
+  busStops: places.busStops,
   jacket: () => me.jacket,
   setJacket: (c) => {
     pickColor(c);
@@ -444,7 +462,7 @@ function snapshot() {
 // prove automatiche: ?debug espone un teletrasporto e lo stato del gioco
 if (q.has("debug"))
   Object.assign(window, {
-    __mv: { ...play.debug, obstacles, weather: play.weather, sound, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
+    __mv: { ...play.debug, busStops: places.busStops, hours: () => hours, setCinema: (v: { pos: THREE.Vector3; target: THREE.Vector3 } | null) => (cinema = v), grass, bushes: bushes.count, obstacles, weather: play.weather, sound, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
   });
 
 // le ombre delle montagne, lette da tutti i materiali (anche persone e animali appena aggiunti)
@@ -459,6 +477,7 @@ let settings = loadSettings();
 sound.setVolume(settings.volume);
 const quality = new Quality(renderer, sky.sun);
 trees.group.children.forEach((m) => quality.add(m as THREE.InstancedMesh, "tree"));
+quality.add(bushes.mesh, "tree");
 quality.add(play.life.flowers, "flower");
 quality.add(play.life.boulders, "rock");
 quality.choice = settings.quality;
@@ -677,6 +696,9 @@ function frame() {
   sky.update(hours, p, fog, play.weather.storm, play.weather.flash);
   waterUniforms.uTime.value = now;
   waterUniforms.uSky.value.copy(sky.horizon);
+  // l'erba ondeggia (più forte col temporale) e ricresce intorno a te quando ti sposti
+  grassUniforms.uTime.value = now * (1 + play.weather.storm * 1.5);
+  grass.update(p, grassColor);
   // verso il bordo della mappa sale la foschia: le creste inventate oltre il confine restano lontane e sfumate
   const edgeK = 1 - THREE.MathUtils.smoothstep(edgeDistance(T, p.x, p.z), 120, 900);
   fog.near = 900 * (1 - 0.7 * play.weather.storm) * (1 - 0.55 * edgeK);

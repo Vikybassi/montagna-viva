@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { Boulder } from "../climb";
 import type { Hiker } from "../player";
 import type { Weather } from "../weather";
-import { S, type Cover, type Door, type Place, type Terrain, type WorldData } from "../world";
+import { S, type BusStop, type Cover, type Door, type Place, type Terrain, type WorldData } from "../world";
 
 /**
  * Le basi comuni a tutte le parti del gioco: cosa arriva dal ciclo principale (PlayCtx), i luoghi della valle, gli
@@ -23,6 +23,8 @@ export type PlayCtx = {
   sunDir: () => THREE.Vector3;
   /** le porte di rifugi e bivacchi (per entrare a ripararsi) */
   doors: Map<string, Door>;
+  /** le fermate della corriera (nei paesi lungo la strada) */
+  busStops: BusStop[];
   /** la giacca del giocatore (la scegli all'inizio o nell'armadio; la vedono anche gli altri) */
   jacket: () => string;
   setJacket: (c: string) => void;

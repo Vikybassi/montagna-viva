@@ -4,16 +4,17 @@ import { state } from "../state";
 import * as ui from "../ui";
 import { S } from "../world";
 import type { Interact, World } from "./base";
+import { LOOKS, type Look } from "../looks";
 
 /**
  * L'arrampicata: la via con corda sul Sasso Remenno (Davide fa sicura) e i quattro blocchi della Val di Mello
  * (bouldering, senza corda, sul materassino, con chi para). Sopra a tutti i massi si cammina, e non li si attraversa.
  */
-const BLOCKS: { id: string; name: string; grade: string; size: [number, number, number]; bulge: number; kinds: Kind[]; partner: { name: string; look: { jacket: string; hat: string; pack: string; hair: string } } }[] = [
-  { id: "torrente", name: "Il masso del torrente", grade: "4a", size: [5, 5, 4.6], bulge: 0.12, kinds: ["jug", "jug", "jug", "sloper", "jug", "jug", "jug", "jug"], partner: { name: "Sofia", look: { jacket: "#e05a8f", hat: "#2f8f8a", pack: "#3b3550", hair: "#3a2a20" } } },
-  { id: "placca", name: "La placca", grade: "5a", size: [6, 5.4, 5.4], bulge: 0.08, kinds: ["jug", "jug", "crimp", "jug", "sloper", "jug", "jug", "jug"], partner: { name: "Pietro", look: { jacket: "#3b5a8a", hat: "#f2b632", pack: "#e07d3e", hair: "#8a5a3a" } } },
-  { id: "pancia", name: "La pancia", grade: "5c", size: [5.4, 5.6, 5], bulge: 0.45, kinds: ["jug", "crimp", "jug", "sloper", "crimp", "jug", "crimp", "jug"], partner: { name: "Irene", look: { jacket: "#f2b632", hat: "#c2375a", pack: "#2f8f8a", hair: "#c9a440" } } },
-  { id: "tetto", name: "Il tetto", grade: "6a", size: [6, 6, 5.4], bulge: 0.62, kinds: ["jug", "crimp", "sloper", "crimp", "crimp", "sloper", "crimp", "jug"], partner: { name: "Matteo", look: { jacket: "#5a6b3a", hat: "#3b3550", pack: "#c2375a", hair: "#2a1f1a" } } },
+const BLOCKS: { id: string; name: string; grade: string; size: [number, number, number]; bulge: number; kinds: Kind[]; partner: { name: string; look: Look } }[] = [
+  { id: "torrente", name: "Il masso del torrente", grade: "4a", size: [5, 5, 4.6], bulge: 0.12, kinds: ["jug", "jug", "jug", "sloper", "jug", "jug", "jug", "jug"], partner: { name: "Sofia", look: LOOKS.Sofia } },
+  { id: "placca", name: "La placca", grade: "5a", size: [6, 5.4, 5.4], bulge: 0.08, kinds: ["jug", "jug", "crimp", "jug", "sloper", "jug", "jug", "jug"], partner: { name: "Pietro", look: LOOKS.Pietro } },
+  { id: "pancia", name: "La pancia", grade: "5c", size: [5.4, 5.6, 5], bulge: 0.45, kinds: ["jug", "crimp", "jug", "sloper", "crimp", "jug", "crimp", "jug"], partner: { name: "Irene", look: LOOKS.Irene } },
+  { id: "tetto", name: "Il tetto", grade: "6a", size: [6, 6, 5.4], bulge: 0.62, kinds: ["jug", "crimp", "sloper", "crimp", "crimp", "sloper", "crimp", "jug"], partner: { name: "Matteo", look: LOOKS.Matteo } },
 ];
 
 export function setupClimbing(w: World) {

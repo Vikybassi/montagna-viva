@@ -19,7 +19,7 @@ export default async function drink(browser) {
   check(await toast(page, "Un sorso"), "e lo dice");
   // la fontana del paese: E e la borraccia è di nuovo piena
   await page.evaluate(() => { const f = window.__mv.fountains[0]; window.__mv.tp(f.x + 1.5, f.z + 1.5); });
-  check(await until(page, () => (document.querySelector(".act.on")?.textContent ?? "").includes("fontana")), "vicino alla fontana: «Bevi alla fontana»");
+  check(await until(page, () => (document.querySelector(".act.on")?.textContent ?? "").includes("Bevi alla")), "vicino alla fontana: «Bevi alla…»");
   await page.keyboard.press("e");
   check(await until(page, () => window.__mv.thirst.water === 1 && window.__mv.thirst.dry < 0.01), "alla fontana si beve e la borraccia è piena");
   // borraccia vuota vicino al torrente

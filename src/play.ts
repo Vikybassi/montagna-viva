@@ -14,6 +14,8 @@ import { createPeople, setupMissions } from "./game/people";
 import { QuestEngine } from "./game/quests";
 import { setupRoutes } from "./game/routes";
 import { createWeather, setupStorm } from "./game/storm";
+import { setupBus } from "./game/bus";
+import { setupPanorama } from "./game/panorama";
 import { setupWater } from "./game/water";
 import { setupValley } from "./game/valley";
 
@@ -36,6 +38,18 @@ export function setupPlay(c: PlayCtx) {
   const missions = setupMissions(w, people, valley);
   const storm = setupStorm(w, routes, valley, () => !!climbing.active() || racing());
   const water = setupWater(w, valley);
+  const panorama = setupPanorama(w);
+  const bus = setupBus(w, valley, routes);
+  routes.map.stops = bus.stops;
+  // dentro rifugi e bivacchi, col bel tempo: riposarsi mezz'ora (torna il fiato) e, al rifugio, bere
+  storm.setExtraButtons((_p, kind) => [
+    ...(kind === "rifugio" ? [{ label: "Bevi e riempi la borraccia", fn: () => water.refill() }] : []),
+    ...(c.sharedTime() ? [] : [{ label: "Riposa mezz'ora", fn: () => {
+      c.setHours(c.getHours() + 0.5);
+      stamina = 1;
+      return kind === "rifugio" ? "Mezz'ora seduta sulla panca, con le gambe allungate: il fiato è tornato." : "Mezz'ora sulla branda del bivacco, in silenzio: il fiato è tornato.";
+    } }]),
+  ]);
 
   // il motore delle missioni: il temporale prima di tutto, poi commissione o missione (quella che segui)
   const engine = new QuestEngine();
@@ -43,7 +57,7 @@ export function setupPlay(c: PlayCtx) {
   engine.add("commissione", () => valley.encounters.errandQuest(people.custOmio.root.position));
   engine.add("missione", missions.missionQuest);
   const guidance = setupGuidance(w, engine, routes, climbing, racing);
-  const interacts = [...missions.interacts, ...valley.interacts, ...storm.interacts, ...water.interacts, ...climbing.interacts];
+  const interacts = [...missions.interacts, ...valley.interacts, ...storm.interacts, ...water.interacts, ...panorama.interacts, ...bus.interacts, ...climbing.interacts];
   const interactions = setupInteractions(w, interacts, valley, (s) => void missions.observe(s), () => !!climbing.active());
 
   // ---------- fiato ----------
@@ -78,8 +92,8 @@ export function setupPlay(c: PlayCtx) {
     save();
     routes.resetMissionRoute();
   };
-  ui.tools.onPhone = () => {
-    if (phone.isOpen || !ui.busy) phone.toggle();
+  ui.tools.onPhone = (tab) => {
+    if (phone.isOpen || !ui.busy) phone.toggle(tab);
   };
 
   /**
@@ -103,13 +117,13 @@ export function setupPlay(c: PlayCtx) {
     else state.errand = null;
     save();
     routes.resetMissionRoute();
-    ui.toast(trackedKind === "missione" ? "<b>Missione in pausa.</b> La riprendi parlando con Marta, a San Martino." : "<b>Commissione in pausa.</b> La riprendi parlando di nuovo con chi te l'ha chiesta.");
+    ui.toast(trackedKind === "missione" ? "<b>Missione in pausa.</b> La riprendi parlando con Marta, a San Martino." : "<b>Commissione in pausa.</b> La riprendi parlando di nuovo con chi te l'ha chiesta.", "now");
   }
 
   return {
     welcomeBack,
     /** solo per le prove automatiche (?debug) */
-    debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, interacts, thirst: water.debug, fountains: water.fountains, pickHut: routes.pickHut, guide: () => routes.guide },
+    debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, interacts, thirst: water.debug, fountains: water.fountains, map: routes.map, pickHut: routes.pickHut, guide: () => routes.guide },
     get runToggle() {
       return runToggle;
     },
@@ -158,7 +172,7 @@ export function setupPlay(c: PlayCtx) {
         }
         if (!aim || !aim.ok) {
           addPhoto({ img, place: c.place(), time });
-          ui.toast(aim ? `<b>${SUBJECTS[aim.subject].name}</b> ${aim.why}` : "<b>Foto nell'album</b> Per il taccuino metti al centro un fiore o un animale.", aim ? "warn" : "");
+          ui.toast(aim ? `<b>${SUBJECTS[aim.subject].name}</b> ${aim.why}` : "<b>Foto nell'album</b> Per il taccuino metti al centro un fiore o un animale.", aim ? "warn now" : "now");
           return;
         }
         const s = SUBJECTS[aim.subject];
@@ -172,7 +186,7 @@ export function setupPlay(c: PlayCtx) {
           ui.toast(`<small>Nuova scheda nel taccuino</small><b>${s.name}</b>`, "task");
           sound.ui("learn");
           if (s.fact) ui.learned(learn(s.fact));
-        } else ui.toast(`<b>Bella foto!</b> ${s.name}`);
+        } else ui.toast(`<b>Bella foto!</b> ${s.name}`, "now");
         // fotografare un animale da lontano vale come osservarlo (per la missione del guardiaparco)
         if (aim.subject === "stambecco" || aim.subject === "marmotta" || aim.subject === "aquila" || aim.subject === "camoscio") void missions.observe(aim.subject);
       },

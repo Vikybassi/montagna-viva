@@ -86,3 +86,19 @@ describe("indicazioni ai bivi", () => {
     expect(router.route(at(0, 0), at(1000, -1000))!.turns.map((t) => t.side)).toEqual(["destra"]);
   });
 });
+
+describe("rete segnata", () => {
+  it("a parità di strada sceglie il sentiero segnato (CAI), non la traccia", () => {
+    const T = { heightAt: () => 1000 * S };
+    const data = {
+      paths: [
+        { k: "p", pts: [[0, 0], [300, -500], [0, -1000]], f: 1 }, // traccia debole, a est
+        { k: "p", pts: [[0, 0], [-300, -500], [0, -1000]], m: 1, ref: "321" }, // sentiero segnato, a ovest
+      ],
+    };
+    const router = new Router(T as never, data as never);
+    const at = (x: number, z: number) => new THREE.Vector3(x * S, 1000 * S, z * S);
+    const r = router.route(at(0, 0), at(0, -1000))!;
+    expect(r.pts.some((p) => p.x / S < -200)).toBe(true);
+  });
+});

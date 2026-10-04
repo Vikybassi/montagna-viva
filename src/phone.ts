@@ -52,7 +52,7 @@ export class Phone {
   private device: HTMLDivElement;
   private statusEl: HTMLDivElement;
   private body: HTMLDivElement;
-  private mini = document.querySelector<HTMLButtonElement>(".miniphone")!;
+  private mini = document.querySelector<HTMLElement>(".miniphone")!;
   private news = new Set<PhoneTab>();
   private lastHours = -1;
   private lowWarned = false;
@@ -291,6 +291,8 @@ export class Phone {
   private dots() {
     this.wrap.querySelectorAll<HTMLButtonElement>(".ph-tabs button").forEach((b) => b.classList.toggle("new", this.news.has(b.dataset.tab as PhoneTab)));
     this.mini.classList.toggle("new", this.news.size > 0);
+    // il puntino anche sulle icone del telefonino (le schede che non hanno un'icona accendono quello generale)
+    this.mini.querySelectorAll<HTMLElement>(".mp-icon").forEach((b) => b.classList.toggle("new", this.news.has(b.dataset.tab as PhoneTab)));
   }
 
   private renderStatus() {

@@ -9,7 +9,7 @@ import { GLACIER_COLOR, S, type Cover, type Terrain } from "./world";
  */
 export type Year = 1850 | 1950 | 2025 | 2050;
 const ELA_NOW = 3000;
-const SHIFT: Record<Year, number> = { 1850: -330, 1950: -170, 2025: 0, 2050: 220 };
+const SHIFT: Record<Year, number> = { 1850: -330, 1950: -170, 2025: 0, 2050: 320 };
 
 export class GlacierTime {
   year: Year = 2025;
@@ -28,9 +28,45 @@ export class GlacierTime {
     this.cur = this.base.slice();
     this.from = this.base.slice();
     this.to = this.base;
+    this.exposeRock();
   }
 
-  private model(year: Year) {
+  /**
+   * Dove c'è (o c'è stato, nel 1850) il ghiaccio, sotto non c'è neve: c'è roccia e morena. Il terreno «senza ghiaccio» era
+   * bianco di neve sopra i 2950 m, e quando il ghiaccio si ritirava non cambiava niente: ora si scopre la roccia scura.
+   */
+  private exposeRock() {
+    const maxIce = this.model(1850), { cols, rows } = this.t.meta;
+    const bare = this.mesh.userData.bare as Float32Array;
+    const col = this.mesh.geometry.attributes.color as THREE.BufferAttribute, arr = col.array as Float32Array;
+    const rock = new THREE.Color("#6f6a75"), moraine = new THREE.Color("#8b7f76"), tmp = new THREE.Color(), gc = this.glacierColor;
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const i = r * cols + c;
+        if (maxIce[i] < 0.25) continue;
+        // roccia scura in alto, morena più calda e chiara verso il basso, con macchie
+        const n = Math.sin(c * 0.9 + r * 0.55) * Math.sin(r * 0.8 - c * 0.35);
+        tmp.copy(moraine).lerp(rock, THREE.MathUtils.smoothstep(this.t.h[i], 2300, 3100)).offsetHSL(0, 0, n * 0.04);
+        const w = Math.min(1, maxIce[i] * 2); // ai bordi si mescola piano al terreno
+        bare[i * 3] += (tmp.r - bare[i * 3]) * w;
+        bare[i * 3 + 1] += (tmp.g - bare[i * 3 + 1]) * w;
+        bare[i * 3 + 2] += (tmp.b - bare[i * 3 + 2]) * w;
+        const f = this.cur[i] * 0.92;
+        arr[i * 3] = bare[i * 3] + (gc.r - bare[i * 3]) * f;
+        arr[i * 3 + 1] = bare[i * 3 + 1] + (gc.g - bare[i * 3 + 1]) * f;
+        arr[i * 3 + 2] = bare[i * 3 + 2] + (gc.b - bare[i * 3 + 2]) * f;
+      }
+    col.needsUpdate = true;
+  }
+
+  /** quanto ghiaccio c'è in un anno rispetto a oggi (1 = come oggi, 4 = quattro volte tanto) */
+  versusNow(year: Year) {
+    const sum = (a: Float32Array) => a.reduce((x, y) => x + y, 0);
+    return sum(this.model(year)) / Math.max(1, sum(this.base));
+  }
+
+  /** il ghiaccio di un anno (da 0 a 1 per cella): pubblico per le prove */
+  model(year: Year) {
     const hit = this.cache.get(year);
     if (hit) return hit;
     const { t, base } = this;

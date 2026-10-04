@@ -9,6 +9,7 @@ import * as ui from "../ui";
 import { STILL, SUNSET, dur, hhmm, isDaylight, type Interact, type World } from "./base";
 import type { Quest } from "./quests";
 import type { Valley } from "./valley";
+import { LOOKS } from "../looks";
 
 /**
  * Le persone della valle e le missioni di Marta: la guida a San Martino, Giulio all'Omio, Sara al Ponti, Elena al
@@ -24,10 +25,10 @@ export function createPeople(w: World) {
     c.addLabel(name, role, pos.x, pos.z, 2.6, 60, "npc");
     return h;
   };
-  const marta = npc({ jacket: "#2f8f8a", hat: "#c2375a", pack: "#f2b632", hair: "#3a2a20" }, at(martino, 10, 50), "Marta", "guida");
-  const custOmio = npc({ jacket: "#5a6b3a", hat: "#8a6446", pack: "#5a6b3a", hair: "#b8b0a8" }, at(omio, 6, 4), "Giulio", "custode");
-  const custPonti = npc({ jacket: "#3b5a8a", hat: "#e07d3e", pack: "#3b5a8a", hair: "#6a4a30" }, at(ponti, 6, 4), "Sara", "custode");
-  const elena = npc({ jacket: "#f2b632", hat: "#3b3550", pack: "#c2375a", hair: "#2a1f1a" }, pianoPR.clone(), "Elena", "glaciologa");
+  const marta = npc(LOOKS.Marta, at(martino, 10, 50), "Marta", "guida");
+  const custOmio = npc(LOOKS.Giulio, at(omio, 6, 4), "Giulio", "custode");
+  const custPonti = npc(LOOKS.Sara, at(ponti, 6, 4), "Sara", "custode");
+  const elena = npc(LOOKS.Elena, pianoPR.clone(), "Elena", "glaciologa");
   elena.root.position.y = T.heightAt(elena.root.position.x, elena.root.position.z);
   return { marta, custOmio, custPonti, elena, all: [marta, custOmio, custPonti, elena] };
 }
@@ -231,7 +232,8 @@ export function setupMissions(w: World, people: People, v: Valley) {
     c.cinema({ pos, target: target.clone().addScaledVector(flat, 60) });
     for (;;) {
       const years: Year[] = [1850, 1950, 2025, 2050];
-      const i = await ui.say("Elena, glaciologa", `Ora vedi il ${glacier.year === 2025 ? "ghiacciaio di oggi" : glacier.year}. Quale anno vuoi vedere?`, ["1850", "1950", "Oggi", "2050 (scenario)", "Basta così"]);
+      const now = glacier.versusNow(glacier.year), cmp = glacier.year === 2025 ? "" : ` Il ghiaccio nella valle è ${now > 1 ? `circa ${now.toFixed(1).replace(".", ",")} volte quello di oggi` : `il ${Math.round(now * 100)}% di quello di oggi`}.`;
+      const i = await ui.say("Elena, glaciologa", `Ora vedi il ${glacier.year === 2025 ? "ghiacciaio di oggi" : glacier.year}.${cmp} Quale anno vuoi vedere?`, ["1850", "1950", "Oggi", "2050 (scenario)", "Basta così"]);
       if (i === 4) break;
       const y = years[i];
       glacier.setYear(y);

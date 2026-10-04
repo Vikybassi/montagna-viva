@@ -52,13 +52,17 @@ export type Saved = {
   /** l'acqua nella borraccia (da 0 a 1) e la sete (0 dissetata, 1 tanta sete) */
   water: number;
   thirst: number;
+  /** i panorami guardati (rifugi, bivacchi, belvedere) */
+  views: string[];
+  /** i paesi dove sei arrivata in corriera */
+  rides: string[];
 };
 
 const KEY = "montagna-viva:v1";
 /** tutte le chiavi del gioco nel browser: progressi, album, taccuino, profilo, impostazioni */
 export const KEYS = { state: KEY, album: "montagna-viva:album", notebook: "montagna-viva:taccuino", me: "montagna-viva:me", settings: "montagna-viva:settings" };
 export const SAVE_VERSION = 2;
-export const empty = (): Saved => ({ version: SAVE_VERSION, diary: [], pack: [], packed: false, missions: {}, active: null, bestRun: null, seen: [], stamps: [], summits: [], litter: [], skipBest: 0, boulder: false, shots: 0, battery: 0.86, ometti: 0, tasks: [], badges: [], sheltered: false, owned: [], outfit: { cappello: "c-berretto", occhiali: null, collo: null, bastoncini: null }, photos: {}, encounters: [], carrying: null, errand: null, followErrand: true, cairns: [], blocks: [], events: [], water: 1, thirst: 0 });
+export const empty = (): Saved => ({ version: SAVE_VERSION, diary: [], pack: [], packed: false, missions: {}, active: null, bestRun: null, seen: [], stamps: [], summits: [], litter: [], skipBest: 0, boulder: false, shots: 0, battery: 0.86, ometti: 0, tasks: [], badges: [], sheltered: false, owned: [], outfit: { cappello: "c-berretto", occhiali: null, collo: null, bastoncini: null }, photos: {}, encounters: [], carrying: null, errand: null, followErrand: true, cairns: [], blocks: [], events: [], water: 1, thirst: 0, views: [], rides: [] });
 
 /**
  * Le migrazioni: da una versione alla successiva. Si applicano in ordine a partire dalla versione del salvataggio.

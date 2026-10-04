@@ -75,22 +75,33 @@ CHANGELOG sono aggiornati, le schermate sono nella release, la tappa è su GitHu
 
 ---
 
-## 3. Dove siamo (ottobre 2026)
+## 3. Dove siamo (4 ottobre 2026)
 
-**Fatto**: valle vera (terreno Copernicus, dati OpenStreetMap), cammino, corsa, parapendio, nuoto; telefono con
-missioni, mappa, diario, zaino, spille, armadio; 5 missioni, 10 capitoli di compiti, ometti e vestiti; temporale
-con telefonata di Marta, riparo con porta e attesa; incontri sui sentieri; fotografia naturalistica con taccuino;
-arrampicata con corda (Remenno) e blocchi in Val di Mello; minigioco degli ometti; elisoccorso, arcobaleno, stelle
-cadenti; multiplayer (server locale); grafica pastello, facce, dialoghi a fumetto.
+**Fatto**
 
-**Debiti da saldare**
+- **M0** (v0.1.0) fondamenta e GitHub; **M1** (v0.2.0) architettura e logiche: moduli, motore delle missioni,
+  salvataggi, tasti, collisioni, tempo e meteo robusti, 41 casi limite con le prove.
+- **0.3.0** (lavoro fuori roadmap che ne anticipa parti): stile Coastal World, suoni veri, mappa a carta dei sentieri
+  con la rete CAI, telefonino a icone, avvisi in fila, corriera tra i paesi, panorami, fontane vere, bere, ghiacciaio
+  che cambia. Anticipa pezzi di M3 (mappa con zoom, avvisi) e di M5 (suoni, arte).
 
-- Il codice di gioco è in gran parte in un solo file (`play.ts`, circa 1.200 righe).
-- Missioni, commissioni ed eventi seguono logiche diverse.
-- Non ci sono git, test automatici nel progetto né un sito pubblicato.
-- Case e alberi si attraversano.
-- La schermata iniziale è vecchia; manca un tutorial.
-- La mappa non si zooma.
+**Ancora da fare, in breve**: schermata iniziale e tutorial (M3), la storia di Ada (M2), le altre valli (M2b),
+tocco e accessibilità (M4), musica e scenari più realistici (M5), telefono e libretto rifiniti (M6), fonti (M7), lancio (M8).
+
+---
+
+## 3b. Ordine di lavoro (concordato il 4 ottobre 2026)
+
+1. **Mettere in ordine**: unire la M1 (v0.2.0) e il lavoro dell'ultimo periodo (v0.3.0); questa roadmap aggiornata.
+2. **Primi cinque minuti** (la parte di M3 che manca): nuova schermata iniziale, tutorial breve dentro il gioco,
+   dialoghi con testo che appare, impostazioni di leggibilità.
+3. **La storia (M2)**, con una regola: **le missioni dei custodi sono le pagine del libretto di Ada**. Ogni rifugio ha la
+   sua pagina del 1975 e il suo custode ti chiede una cosa legata a quel posto (una foto, un panorama, una consegna, il
+   ghiacciaio). Bere, panorami, foto e corriera diventano il modo di riempire il libretto. Mirtilli e funghi (con le
+   regole vere) sono contenuti di questa tappa.
+4. **Altre valli (M2b)**, solo dopo che la storia funziona in una valle sola.
+5. Poi **M4** (tocco e accessibilità), **M5** (musica, scenari più realistici: granito, massi, torrente verde, boschi a
+   fasce), **M6** (telefono e libretto), **M7** (fonti), **M8** (lancio).
 
 ---
 
@@ -253,3 +264,5 @@ Il multiplayer online è fuori dalla 1.0: il gioco in compagnia resta solo in lo
 7. **Suoni registrati** (3 ottobre 2026): vento, torrenti, uccelli, passi, campanacci, animali, pioggia e tuoni
    passano da sintetizzati a registrazioni vere a licenza libera (CC0 o equivalente), con l'elenco delle fonti nei
    crediti. Si anticipa dalla M5.
+8. **Ordine di lavoro** (4 ottobre 2026): vedi sezione 3b. Le cose che le persone fanno lungo la strada non si
+   aggiungono a caso: ogni nuova attività deve servire la storia (una pagina del libretto) o l'imparare qualcosa di vero.

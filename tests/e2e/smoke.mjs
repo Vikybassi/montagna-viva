@@ -17,6 +17,26 @@ export default async function smoke(browser) {
   await wait(500);
   check(!(await page.evaluate(() => window.__mv.busy())), "Esc chiude il telefono e il gioco riparte");
   check(!(await page.evaluate(() => !!document.querySelector(".panel.on"))), "lo stesso Esc non apre la pausa");
+  // la mappa: un tocco sul Rifugio Omio (senza trascinare) propone la strada
+  await page.evaluate(() => document.querySelector('.mp-icon[data-tab="mappa"]').click());
+  await until(page, () => !!window.__mv.map.hits?.length);
+  const tapped = await page.evaluate(() => {
+    const m = window.__mv.map, h = m.hits.find((x) => x.place.name.includes("Omio"));
+    if (!h) return false;
+    const r = m.canvas.getBoundingClientRect(), x = r.left + h.x, y = r.top + h.y;
+    for (const type of ["pointerdown", "pointerup"]) m.canvas.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, bubbles: true, pointerType: "mouse" }));
+    return true;
+  });
+  check(tapped, "sulla mappa c'è il Rifugio Omio");
+  check(await until(page, () => (document.querySelector(".dlg.on")?.textContent ?? "").includes("Omio")), "toccando il rifugio sulla mappa si sceglie la strada");
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => [...document.querySelectorAll(".dlg.on .opt")].find((b) => b.textContent.includes("Annulla"))?.click());
+  await until(page, () => window.__mv.layer() === "mondo");
+  // il telefonino nell'angolo: le icone aprono subito la scheda giusta
+  await page.evaluate(() => document.querySelector('.mp-icon[data-tab="foto"]').click());
+  check(await until(page, () => window.__mv.layer() === "telefono" && (document.querySelector(".ph-body h2")?.textContent ?? "") === "Foto"), "l'icona della fotocamera nel telefonino apre le foto");
+  await page.keyboard.press("Escape");
+  await until(page, () => window.__mv.layer() === "mondo");
   await page.keyboard.press("p");
   await wait(500);
   check(await page.evaluate(() => document.querySelector(".finder").classList.contains("on")), "P apre la fotocamera");
