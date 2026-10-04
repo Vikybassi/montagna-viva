@@ -44,7 +44,7 @@ sola, muri veri, orologio che può saltare senza rompere niente.
 - Un motore unico delle missioni (`QuestEngine`): emergenza › corsa › quella che scegli di seguire.
 - Un gestore unico dei tasti a livelli (`src/input.ts`) e gli ostacoli solidi (`src/collide.ts`).
 - Salvataggi con versione, migrazioni, controllo dei campi, esporta/importa.
-- 51 prove veloci; i casi limite sono elencati in [tests/CASI.md](tests/CASI.md).
+- Salvataggi, strade, meteo, compiti e ostacoli hanno prove automatiche; i casi limite sono in [tests/CASI.md](tests/CASI.md).
 
 ## 0.1.0 · M0, fondamenta (3 ottobre 2026)
 
