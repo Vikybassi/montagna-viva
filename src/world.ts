@@ -19,7 +19,8 @@ export type WorldData = {
   peaks: Peak[];
   views: { name: string | null; p: Pt }[];
   remenno: Pt | null;
-  paths: { k: "p" | "t" | "a" | "r"; pts: Pt[] }[];
+  /** m: segnato (rete CAI, con `ref` il numero o il nome del percorso); f: traccia debole (informale, poco visibile) */
+  paths: { k: "p" | "t" | "a" | "r"; pts: Pt[]; m?: 1; ref?: string; f?: 1 }[];
   streams: { r: 0 | 1; pts: Pt[] }[];
   cover: { water: Pt[][]; glacier: Pt[][]; forest: Pt[][] };
 };
@@ -387,13 +388,19 @@ export function buildTrails(t: Terrain, data: WorldData, cover: Cover) {
   const woods = (x: number, z: number) => THREE.MathUtils.smoothstep(cover.at(cover.forest, x, z), 0.25, 0.6) * (1 - town(x, z));
   const lines = { p: [] as Pt[][], a: [] as Pt[][], t: [] as Pt[][], r: [] as Pt[][] };
   for (const p of data.paths) lines[p.k].push(p.pts);
-  for (const k of ["r", "t", "p", "a"] as const) {
-    const K = KIND[k];
-    const width = (x: number, z: number) => THREE.MathUtils.lerp(K.w, K.wt, town(x, z)) * (1 - 0.35 * woods(x, z));
-    const c0 = new THREE.Color(K.c), c1 = new THREE.Color(K.cf), e0 = new THREE.Color(K.e), e1 = new THREE.Color(K.ef);
-    group.add(ribbon(t, lines[k], (x, z) => width(x, z) + 1.1 * (1 - 0.5 * woods(x, z)), 0.3, (x, z, o) => o.copy(e0).lerp(e1, woods(x, z))));
-    group.add(ribbon(t, lines[k], width, 0.36, (x, z, o) => o.copy(c0).lerp(c1, woods(x, z))));
-  }
+  // la rete segnata (CAI) ben visibile; i sentieri non segnati più sottili; le tracce deboli quasi nascoste nel prato
+  const grade = { m: { w: 1, fade: 0 }, n: { w: 0.72, fade: 0.35 }, f: { w: 0.5, fade: 0.7 } } as const;
+  const byGrade = (k: keyof typeof lines, g: keyof typeof grade) => data.paths.filter((p) => p.k === k && (g === "m" ? p.m || k === "r" : g === "f" ? p.f : !p.m && !p.f && k !== "r")).map((p) => p.pts);
+  for (const k of ["r", "t", "p", "a"] as const)
+    for (const g of ["f", "n", "m"] as const) {
+      const ls = byGrade(k, g);
+      if (!ls.length) continue;
+      const K = KIND[k], G = grade[g];
+      const width = (x: number, z: number) => THREE.MathUtils.lerp(K.w, K.wt, town(x, z)) * (1 - 0.35 * woods(x, z)) * G.w;
+      const c0 = new THREE.Color(K.c), c1 = new THREE.Color(K.cf), e0 = new THREE.Color(K.e), e1 = new THREE.Color(K.ef);
+      group.add(ribbon(t, ls, (x, z) => width(x, z) + 1.1 * (1 - 0.5 * woods(x, z)) * G.w, 0.3, (x, z, o) => o.copy(e0).lerp(e1, woods(x, z))));
+      group.add(ribbon(t, ls, width, 0.36, (x, z, o) => o.copy(c0).lerp(c1, woods(x, z)).lerp(e0.clone().lerp(e1, woods(x, z)), G.fade)));
+    }
   // indice dei sentieri: punti ogni 2 unità con la loro mezza larghezza, in celle da 8 unità
   const CELL = 8, grid = new Map<number, number[]>();
   for (const k of ["r", "t", "p", "a"] as const)

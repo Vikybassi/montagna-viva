@@ -35,15 +35,19 @@ export class Router {
       }
       return i;
     };
+    // per scegliere la strada si preferisce la rete segnata (CAI) e le strade; i sentieri non segnati "costano" un po' di
+    // più, le tracce deboli molto di più (i tempi mostrati restano quelli veri, calcolati a parte)
+    let pref = 1;
     const link = (a: number, b: number) => {
       if (a === b) return;
       const A = this.nodes[a], B = this.nodes[b];
       const d = Math.hypot(A.x - B.x, A.z - B.z);
-      A.edges.push({ to: b, cost: cai(d, B.h - A.h) });
-      B.edges.push({ to: a, cost: cai(d, A.h - B.h) });
+      A.edges.push({ to: b, cost: cai(d, B.h - A.h) * pref });
+      B.edges.push({ to: a, cost: cai(d, A.h - B.h) * pref });
     };
     const ends: number[] = [];
     for (const p of data.paths) {
+      pref = p.m || p.k === "r" ? 1 : p.f ? 1.8 : 1.25;
       // infittisce ogni 25 m: il dislivello di ogni tratto è più giusto
       let prev = -1;
       for (let i = 0; i < p.pts.length; i++) {
@@ -63,6 +67,7 @@ export class Router {
         if (i === 0 || i === p.pts.length - 1) ends.push(cur);
       }
     }
+    pref = 1;
     // piccoli buchi nella mappa: le estremità a meno di 15 m da un altro punto si collegano
     for (const e of ends) {
       const n = this.nearest(this.nodes[e].x, this.nodes[e].z, 15, e);

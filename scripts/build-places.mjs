@@ -1,7 +1,7 @@
 // Luoghi, sentieri e coperture del suolo della Val Masino, nelle coordinate del gioco (metri):
 // x verso est dal bordo ovest, z verso sud dal bordo nord. Fonti: OpenStreetMap (© contributori OSM, ODbL),
 // in parte già scaricate per Rientro prima del buio (sentieri, rifugi, cime), in parte da Overpass (data-cache/).
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 
 const meta = JSON.parse(await readFile("public/data/terrain.json", "utf8"));
@@ -55,6 +55,64 @@ const kept = [
   ...roads.filter((w) => ["secondary", "tertiary", "unclassified", "residential", "service", "living_street", "track"].includes(w.tags.highway)),
 ];
 const isRoad = (hw) => !["path", "footway", "track"].includes(hw);
+
+// la rete segnata del CAI: i tratti che fanno parte di un percorso escursionistico di OpenStreetMap (relazioni
+// route=hiking, con il loro numero o nome, es. 321 o "Sentiero Roma"), quelli con il numero sul tratto stesso, e come
+// riserva quelli che corrono lungo un itinerario numerato. Le tracce informali o poco visibili restano, in secondo piano.
+const wayRoute = new Map();
+for (const f of await readdir(`${R}/osm`)) {
+  if (!f.startsWith("relation-")) continue;
+  let d;
+  try {
+    d = JSON.parse(await readFile(`${R}/osm/${f}`, "utf8"));
+  } catch {
+    continue;
+  }
+  for (const r of d.elements ?? [d]) {
+    if (r.type !== "relation" || r.tags?.route !== "hiking") continue;
+    const label = r.tags.ref ?? (r.tags.name?.match(/Sentiero Roma|Sentiero Italia|Alta Via[^-–]*/)?.[0]?.trim() ?? "");
+    for (const m of r.members ?? []) if (m.type === "way" && (!wayRoute.has(m.ref) || (!wayRoute.get(m.ref) && label))) wayRoute.set(m.ref, label);
+  }
+}
+const itins = JSON.parse(await readFile(`${R}/itineraries.json`, "utf8")).filter((it) => !it.unmarked && it.refs?.length);
+const IG = 60, igrid = new Map();
+for (const it of itins) {
+  const pts = project(it.line);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[i + 1], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 10));
+    for (let j = 0; j <= n; j++) {
+      const x = ax + ((bx - ax) * j) / n, y = ay + ((by - ay) * j) / n, key = `${Math.floor(x / IG)},${Math.floor(y / IG)}`;
+      (igrid.get(key) ?? igrid.set(key, []).get(key)).push([x, y, it.refs]);
+    }
+  }
+}
+/** il numero CAI dell'itinerario lungo cui corre un tratto (null se non ne segue nessuno) */
+function itineraryRef(pts) {
+  let near = 0, total = 0;
+  const refs = new Map();
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[i + 1], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 10));
+    for (let j = 0; j < n; j++) {
+      const x = ax + ((bx - ax) * j) / n, y = ay + ((by - ay) * j) / n;
+      total++;
+      let best = null, bd = 15;
+      for (let gx = -1; gx <= 1; gx++)
+        for (let gy = -1; gy <= 1; gy++)
+          for (const q of igrid.get(`${Math.floor(x / IG) + gx},${Math.floor(y / IG) + gy}`) ?? []) {
+            const d = Math.hypot(q[0] - x, q[1] - y);
+            if (d < bd) (bd = d), (best = q);
+          }
+      if (best) {
+        near++;
+        for (const r of best[2]) refs.set(r, (refs.get(r) ?? 0) + 1);
+      }
+    }
+  }
+  if (!total || near / total < 0.6) return null;
+  // il numero più frequente, preferendo quelli numerici (i sentieri CAI); "SI" e simili solo se non c'è altro
+  const sorted = [...refs.entries()].sort((a, b) => (/^\d/.test(b[0]) - /^\d/.test(a[0])) || b[1] - a[1]);
+  return sorted[0]?.[0] ?? "";
+}
 const uses = new Map();
 for (const w of kept) w.nodes.forEach((n, i) => { if (inBox(w.coords[i][0], w.coords[i][1])) uses.set(n, (uses.get(n) ?? 0) + 1); });
 const paths = [];
@@ -62,7 +120,20 @@ for (const w of kept) {
   const hw = w.tags.highway;
   const k = isRoad(hw) ? "r" : hw === "track" ? "t" : w.tags?.sac_scale?.startsWith("demanding") || w.tags?.sac_scale?.includes("alpine") ? "a" : "p";
   let piece = [];
-  const flush = () => { if (piece.length >= 2) paths.push({ k, pts: simplify(project(piece), 6) }); };
+  const faint = w.tags?.informal === "yes" || ["bad", "horrible", "no"].includes(w.tags?.trail_visibility);
+  const flush = () => {
+    if (piece.length < 2) return;
+    const pts = simplify(project(piece), 6);
+    const rec = { k, pts };
+    if (k !== "r") {
+      const ref = wayRoute.has(w.id) ? wayRoute.get(w.id) || w.tags?.ref || "" : w.tags?.ref ?? itineraryRef(pts);
+      if (ref !== null && ref !== undefined) {
+        rec.m = 1;
+        if (ref) rec.ref = String(ref).split(";")[0];
+      } else if (faint) rec.f = 1;
+    }
+    paths.push(rec);
+  };
   for (let i = 0; i < w.coords.length; i++) {
     const c = w.coords[i];
     if (!inBox(c[0], c[1])) { flush(); piece = []; continue; }

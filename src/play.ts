@@ -118,7 +118,7 @@ export function setupPlay(c: PlayCtx) {
   return {
     welcomeBack,
     /** solo per le prove automatiche (?debug) */
-    debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, interacts, thirst: water.debug, fountains: water.fountains, pickHut: routes.pickHut, guide: () => routes.guide },
+    debug: { fauna, nature, cairns: valley.cairnSet.cairns, blocks: climbing.blocks, skyEvents, elena: people.elena.root.position, marta: people.marta.root.position, state, race, raceStart: valley.raceStart, glacier: valley.glacier, data: c.data, interacts, thirst: water.debug, fountains: water.fountains, map: routes.map, pickHut: routes.pickHut, guide: () => routes.guide },
     get runToggle() {
       return runToggle;
     },

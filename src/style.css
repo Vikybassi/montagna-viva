@@ -395,7 +395,14 @@ body:not(.playing) .netpill { display: none; }
 .ph-body.mappa h2 { display: none; }
 .ph-map { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .ph-map .map-hint { margin: 0 0 6px; font-size: 13px; text-align: center; color: var(--ph-soft); }
-.ph-map canvas { flex: 1; min-height: 0; width: 100%; object-fit: contain; border-radius: 18px; cursor: pointer; }
+/* la mappa: una finestra che si ingrandisce e si sposta (il disegno lo fa il gioco, sempre nitido) */
+.ph-map .map-view { position: relative; flex: 1; min-height: 0; overflow: hidden; border-radius: 18px; background: #e9eedd; touch-action: none; }
+.ph-map .map-view canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.ph-map .map-view canvas:active { cursor: grabbing; }
+.map-btns { position: absolute; right: 8px; top: 8px; display: grid; gap: 6px; }
+.map-btns button { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 10px; background: #fff; color: var(--ph-ink); font: 700 18px var(--display); box-shadow: 0 2px 6px rgba(18, 66, 58, 0.25); cursor: pointer; }
+.map-btns button:hover { background: var(--ph-mint); }
+.map-legend .cai { color: #d4322c; }
 .ph-map .map-legend { justify-content: center; margin-top: 6px; font-size: 11px; }
 /* sullo smartphone vero: il telefono del gioco occupa lo schermo, senza mano */
 @media (max-width: 760px) {
