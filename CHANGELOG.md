@@ -38,7 +38,7 @@ più cose vere da fare lungo la strada. Non è una tappa della roadmap: è il la
 
 - Suoni anche in Opus (oltre che AAC) per i browser che non leggono l'AAC; script `npm run audio`.
 - Rete CAI nei dati (`m`, `ref`, `f`) e fermate/sorgenti nei dati della valle (`springs`).
-- 62 prove veloci e 15 nel browser, che girano su GitHub a ogni push, su tutti i branch.
+- 67 prove veloci e 15 nel browser, che girano su GitHub a ogni push, su tutti i branch.
 
 ## 0.2.0 · M1, architettura e logiche (4 ottobre 2026)
 
