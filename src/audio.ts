@@ -22,6 +22,8 @@ export class Sound {
   private master!: GainNode;
   private noise!: AudioBuffer;
   private buffers = new Map<string, AudioBuffer>();
+  /** dove inizia il suono vero in ogni registrazione (i bordi di silenzio aggiunti dalla compressione si saltano) */
+  private starts = new Map<string, number>();
   private beds = new Map<string, Bed>();
   private heliPan: StereoPannerNode | null = null;
   private heliSeen = -1;
@@ -50,13 +52,21 @@ export class Sound {
   private async load() {
     const c = this.ctx!;
     const names = [...BEDS, "campanacci", ...Object.entries(SHOTS).flatMap(([k, n]) => (n === 1 ? [k] : Array.from({ length: n }, (_, i) => `${k}-${k.startsWith("passo") ? i : i + 1}`)))];
+    // AAC (.m4a) dove il browser lo legge (preciso: gli anelli tornano a capo senza scatti); altrimenti Opus (.webm), per
+    // i browser senza AAC (es. Chromium su Linux)
+    const ext = new Audio().canPlayType('audio/mp4; codecs="mp4a.40.2"') ? "m4a" : "webm";
     await Promise.all(
       names.map(async (n) => {
-        try {
-          const res = await fetch(`${import.meta.env.BASE_URL}audio/${n}.m4a`);
-          this.buffers.set(n, await c.decodeAudioData(await res.arrayBuffer()));
-        } catch {
-          /* un suono che manca non ferma il gioco */
+        for (const e of [ext, ext === "webm" ? "m4a" : "webm"]) {
+          try {
+            const res = await fetch(`${import.meta.env.BASE_URL}audio/${n}.${e}`);
+            const b = await c.decodeAudioData(await res.arrayBuffer());
+            this.buffers.set(n, b);
+            this.starts.set(n, trim(b)[0]);
+            return;
+          } catch {
+            /* si prova l'altro formato; un suono che manca non ferma il gioco */
+          }
         }
       }),
     );
@@ -167,7 +177,7 @@ export class Sound {
     const g = c.createGain();
     g.gain.value = v;
     s.connect(g).connect(this.pan(x, z));
-    s.start(c.currentTime + delay);
+    s.start(c.currentTime + delay, this.starts.get(key) ?? 0);
   }
   private tone(type: OscillatorType, f0: number, f1: number, t: number, dur: number, vol: number, out: AudioNode) {
     const c = this.ctx!;

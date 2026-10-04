@@ -4,6 +4,9 @@
  * - i versi e i colpi si ritagliano, con attacco e coda morbidi;
  * - tutto in mono (la posizione nello spazio la fa il gioco), poi AAC (afconvert del Mac) in public/audio.
  * Decodifica e taglio in Chrome (Web Audio legge mp3 e ogg). Uso: node scripts/audio/prepara.mjs
+ * Due formati: AAC (.m4a, per Safari) e Opus (.webm, per Chrome e Firefox anche dove l'AAC manca, es. Chromium su
+ * Linux); il gioco sceglie quello che il browser sa leggere. L'Opus lo registra Chrome stesso (MediaRecorder, in tempo
+ * reale: ci vuole qualche minuto).
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -43,7 +46,7 @@ for (const [k, n] of [["erba", "grass"], ["roccia", "concrete"], ["neve", "snow"
 
 mkdirSync(OUT, { recursive: true });
 mkdirSync(TMP, { recursive: true });
-const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--autoplay-policy=no-user-gesture-required"] });
 const page = await browser.newPage();
 const cache = new Map();
 async function render(name, file, a, b, xf) {
@@ -94,6 +97,7 @@ async function render(name, file, a, b, xf) {
       for (const v of out) pk = Math.max(pk, Math.abs(v));
       for (let i = 0; i < out.length; i++) out[i] *= 0.89 / (pk || 1);
     }
+    window.__out = { out, sr };
     // WAV 16 bit mono
     const buf = new ArrayBuffer(44 + out.length * 2), v = new DataView(buf);
     const w = (o, str) => [...str].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
@@ -110,6 +114,35 @@ async function render(name, file, a, b, xf) {
   writeFileSync(tmp, Buffer.from(wav.b64, "base64"));
   // AAC: 64 kbit/s per gli ambienti, 48 per i colpi brevi
   execFileSync("afconvert", ["-f", "m4af", "-d", "aac", "-b", String(xf > 0 ? 64000 : 48000), tmp, `${OUT}/${name}.m4a`]);
+  // Opus in WebM: Chrome lo registra suonando il suono dentro un registratore (un attimo di silenzio prima e dopo)
+  const webm = await page.evaluate(async (bps) => {
+    const { out, sr } = window.__out;
+    const ctx = new AudioContext({ sampleRate: 48000 });
+    const buf = ctx.createBuffer(1, out.length, sr);
+    buf.copyToChannel(out, 0);
+    const dest = ctx.createMediaStreamDestination();
+    const rec = new MediaRecorder(dest.stream, { mimeType: "audio/webm;codecs=opus", audioBitsPerSecond: bps });
+    const chunks = [];
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    const done = new Promise((res) => (rec.onstop = res));
+    rec.start(50); // a pezzetti: niente si perde alla fine
+    await new Promise((r) => setTimeout(r, 150));
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(dest);
+    src.start();
+    await new Promise((r) => (src.onended = r));
+    await new Promise((r) => setTimeout(r, 500));
+    rec.stop();
+    await done;
+    await ctx.close();
+    const blob = new Blob(chunks, { type: "audio/webm" });
+    const u = new Uint8Array(await blob.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode(...u.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }, xf > 0 ? 64000 : 48000);
+  writeFileSync(`${OUT}/${name}.webm`, Buffer.from(webm, "base64"));
   console.log(`${name.padEnd(18)} ${wav.dur.toFixed(1).padStart(5)} s`);
 }
 for (const [n, f, a, b, x] of LOOPS) await render(n, f, a, b, x);
