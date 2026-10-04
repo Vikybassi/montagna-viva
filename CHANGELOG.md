@@ -41,7 +41,11 @@ sola, muri veri, orologio che può saltare senza rompere niente.
 - **Fontane e sorgenti vere**: i 35 punti di OpenStreetMap (compresa la sorgente termale di Bagni di Masino), con la
   borraccia da riempire lungo i sentieri.
 - Il ghiacciaio nel tempo ora si vede cambiare (roccia scoperta sotto il ghiaccio), con il confronto con oggi.
-- 14 prove nel browser.
+- **Corriera tra i paesi**: 7 fermate con pensilina e cartello (San Martino, Bagni di Masino, Cataeggio, Filorera, Prato
+  Maslino, Our di Fondo, Gaggio di Monastero). Scegli dove andare, aspetti la prossima corsa (ogni mezz'ora, dalle 7 alle 19)
+  e dopo pochi secondi di viaggio sei arrivata: l'orologio avanza davvero. Col temporale e dopo l'ultima corsa non parte
+  (il diario spiega perché contano gli ultimi mezzi). Sulla mappa le fermate sono quadrati blu. Due compiti nuovi.
+- 15 prove nel browser.
 
 **Dentro**
 

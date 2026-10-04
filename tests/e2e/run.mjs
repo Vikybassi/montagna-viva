@@ -5,7 +5,7 @@
 import { spawn } from "node:child_process";
 import { BASE, launch } from "./lib.mjs";
 
-const ALL = ["smoke", "keys", "collide", "welcome", "missions", "glacier", "panorama", "drink", "huts", "photo", "encounters", "shelter", "time", "boulder"];
+const ALL = ["smoke", "keys", "collide", "welcome", "missions", "glacier", "panorama", "bus", "drink", "huts", "photo", "encounters", "shelter", "time", "boulder"];
 const which = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 
 const up = async () => fetch(BASE).then((r) => r.ok).catch(() => false);

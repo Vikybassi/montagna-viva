@@ -23,6 +23,8 @@ export class ValleyMap {
   private hovered: Place | null = null;
   /** prima di scegliere un rifugio: chi mostra la mappa si chiude (il telefono) */
   onLeave: () => void = () => {};
+  /** le fermate della corriera (in unità di gioco): si disegnano come piccoli quadrati blu */
+  stops: { x: number; z: number }[] = [];
   /** tempo di cammino da qui (per il cartellino al passaggio del mouse) */
   estimate: (p: Place) => string | null = () => null;
   private hits: { x: number; y: number; place: Place }[] = [];
@@ -67,7 +69,7 @@ export class ValleyMap {
     this.hint.className = "map-hint";
     this.legend = document.createElement("p");
     this.legend.className = "map-legend";
-    this.legend.innerHTML = `<span class="me">▲ tu</span><span class="cai">┅ sentiero CAI</span><span class="r1">● timbrato</span><span class="r0">○ rifugio</span><span class="bv">◆ bivacco</span><span class="pk">▲ libro di vetta</span>`;
+    this.legend.innerHTML = `<span class="me">▲ tu</span><span class="cai">┅ sentiero CAI</span><span class="r1">● timbrato</span><span class="r0">○ rifugio</span><span class="bv">◆ bivacco</span><span class="bs">■ fermata corriera</span><span class="pk">▲ libro di vetta</span>`;
     try {
       new ResizeObserver(() => this.resize()).observe(this.view);
     } catch {
@@ -403,6 +405,22 @@ export class ValleyMap {
       const name = h.name.replace("Rifugio ", "").replace("Bivacco ", "");
       if (h.kind === "paese") label(h.name, s.x + 8, s.y + 4, "700 12px system-ui", "#231a2b");
       else if (zoomed > 1.6 || stamped) label(name, s.x + 9, s.y + 4, "600 10px system-ui", h.kind === "bivacco" ? "#a8501f" : "#9a2030");
+    }
+    // le fermate della corriera
+    for (const st of this.stops) {
+      const p = this.toScreen((st.x / S) * k, (st.z / S) * k);
+      if (p.x < -12 || p.y < -12 || p.x > r.width + 12 || p.y > r.height + 12) continue;
+      g.fillStyle = "#2d6bd0";
+      g.strokeStyle = "#fff";
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.roundRect(p.x - 6, p.y - 6, 12, 12, 3);
+      g.fill();
+      g.stroke();
+      g.fillStyle = "#fff";
+      g.font = "700 8px system-ui";
+      g.textAlign = "center";
+      g.fillText("B", p.x, p.y + 3);
     }
     // tu
     const me = this.where();

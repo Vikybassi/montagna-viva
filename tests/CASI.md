@@ -74,6 +74,7 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 26i | Il ghiacciaio di Preda Rossa tra un anno e l'altro | Si vede cambiare: 1850 bianco pieno, 1950 più piccolo, oggi con la roccia scoperta, 2050 ancora meno; Elena dice quanto ghiaccio c'è rispetto a oggi (sopra i 2950 m il terreno senza ghiaccio era già bianco: il ritiro non si vedeva) | e2e `glacier` |
 | 26j | Panorama da rifugi, bivacchi e belvedere | Ogni punto ha «Guarda il panorama» libero (23 rifugi e bivacchi); le cime si vedono solo se la linea di vista sul terreno è libera, una per direzione, senza quote senza nome; dall'Omio almeno tre cime; conta per i compiti e per il diario | unit `panorama`, e2e `panorama` |
 | 26k | Fontane e sorgenti | Sono i 35 punti veri di OpenStreetMap (più una fontana di paese dove non ce n'è una vicina) | e2e `panorama`, `drink` |
+| 26l | Corriera tra i paesi | 7 fermate libere e con l'invito; corsa ogni mezz'ora dalle 7 alle 19; si aspetta la prossima, si sceglie dove andare, il viaggio dura pochi secondi e l'orologio avanza di attesa e viaggio; si arriva davanti alla pensilina; dopo le 19 e col temporale non parte; chi ti segue (Luca) sale con te; in compagnia il tempo non avanza | unit `timetable`, e2e `bus` |
 | 26c | Una foto nuova | Puntino sulla scheda Foto; album e taccuino nel telefono; un tocco ingrandisce, Esc richiude solo la foto | e2e `photo` |
 
 ## Tempo e meteo (l'orologio che salta)

@@ -252,6 +252,12 @@ export function buildEncounters(c: EncounterCtx) {
       } else luca.h.update(dt, still, false, t);
       luca.label.pos.set(p.x, p.y + 2.6, p.z);
     },
+    /** viaggi veloci (la corriera): chi ti sta seguendo sale con te e ti ritrovi accanto */
+    escort(to: THREE.Vector3) {
+      if (!following) return;
+      luca.h.root.position.set(to.x - 2, to.y, to.z - 1.5);
+      luca.h.root.position.y = t.heightAt(luca.h.root.position.x, luca.h.root.position.z);
+    },
     /** da Giulio all'Omio: se porti il pane di Rosa, prima di tutto glielo dai */
     async deliver(to: "omio") {
       if (to !== "omio" || state.carrying !== "pane") return false;

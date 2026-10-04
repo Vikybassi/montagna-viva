@@ -569,6 +569,11 @@ export function buildTrees(t: Terrain, cover: Cover, rng: () => number, skip?: (
   return { group, count: spots.length, solids };
 }
 
+/** una fermata della corriera: dove sta la pensilina e dove si sta in piedi ad aspettare (unità di gioco) */
+export type BusStop = { name: string; x: number; z: number; stand: THREE.Vector3; ry: number };
+/** i paesi lungo la strada di valle dove ferma la corriera (servizio semplificato del gioco) */
+export const BUS_STOPS = ["San Martino", "Bagni di Masino", "Cataeggio", "Filorera", "Prato Maslino", "Our di Fondo", "Gaggio di Monastero"];
+
 /** Rifugi, bivacchi e paesi: piccoli modelli fatti di forme semplici. */
 /** la porta di un rifugio o di un bivacco: si apre quando entri a ripararti */
 export type Door = { pivot: THREE.Object3D; front: THREE.Vector3; inside: THREE.Vector3 };
@@ -697,7 +702,15 @@ export function buildPlaces(t: Terrain, data: WorldData, rng: () => number) {
     col.set(base).offsetHSL(0, 0, (hash(Math.round(px * 1.3), Math.round(pz * 1.3)) - 0.5) * 0.06);
     return [col.r, col.g, col.b];
   };
-  const village = (cx: number, cz: number, doorsAt: THREE.Vector3[]) => {
+  const busStops: BusStop[] = [];
+  // i paesi a meno di 100 m da una strada: lì può fermare la corriera
+  const roadPts: [number, number][] = [];
+  for (const p of data.paths) if (p.k === "r") for (let i = 0; i < p.pts.length - 1; i++) {
+    const [ax, az] = p.pts[i], [bx, bz] = p.pts[i + 1], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 25));
+    for (let j = 0; j <= n; j++) roadPts.push([(ax + ((bx - ax) * j) / n) * S, (az + ((bz - az) * j) / n) * S]);
+  }
+  const nearRoad = (x: number, z: number) => roadPts.some(([rx, rz]) => Math.hypot(rx - x, rz - z) < 100 * S);
+  const village = (cx: number, cz: number, doorsAt: THREE.Vector3[], name: string) => {
     const R = 9;
     // la piazza: un disco di ciottoli che segue il terreno
     const P: number[] = [], C: number[] = [];
@@ -767,6 +780,42 @@ export function buildPlaces(t: Terrain, data: WorldData, rng: () => number) {
       for (let k = 0; k < 5; k++) piece(o, new THREE.IcosahedronGeometry(0.11, 0), 1, 1, 1, Math.cos(k * 1.3) * 0.25, 0.8, Math.sin(k * 1.3) * 0.25, flower);
       solids.push({ kind: "circle", x: vx, z: vz, r: 0.45, y0: o.position.y - 1, y1: o.position.y + 1 });
     }
+    // la fermata della corriera: pensilina blu con la panchina, e il cartello (aperta verso la piazza)
+    if (BUS_STOPS.includes(name) && nearRoad(cx, cz)) {
+      // il primo posto libero intorno alla piazza: lontano da case, arredi e rifugi (pensilina 3,2 × 1,8 e spazio davanti)
+      const clear = (px: number, pz: number) => {
+        for (const sd of solids) {
+          if (sd.kind === "circle") {
+            if (Math.hypot(sd.x - px, sd.z - pz) < sd.r + 3.2) return false;
+          } else {
+            const cs = Math.cos(sd.rot), sn = Math.sin(sd.rot), dx = px - sd.x, dz = pz - sd.z, lx = dx * cs - dz * sn, lz = dx * sn + dz * cs;
+            if (Math.abs(lx) < sd.hw + 3.4 && Math.abs(lz) < sd.hd + 3.4) return false;
+          }
+        }
+        return !data.huts.some((h) => h.kind !== "paese" && Math.hypot(h.p[0] * S - px, h.p[1] * S - pz) < 12);
+      };
+      let a = 2.85;
+      for (const cand of [2.85, 3.05, 2.65, 4.75, 4.95, 0.3, 0.1, 5.95, 2.45, 3.3]) {
+        if (clear(cx + Math.cos(cand) * 9.6, cz + Math.sin(cand) * 9.6)) {
+          a = cand;
+          break;
+        }
+      }
+      const sx = cx + Math.cos(a) * 9.6, sz = cz + Math.sin(a) * 9.6, ry = Math.atan2(cx - sx, cz - sz);
+      const o = at(sx, sz, ry);
+      for (const px of [-1.35, 1.35]) piece(o, box, 0.16, 2.4, 0.16, px, 1.2, -0.6, "#3b3f4a");
+      piece(o, box, 3.2, 0.14, 1.8, 0, 2.45, -0.1, "#3f7fd0"); // il tetto
+      piece(o, box, 3.0, 1.5, 0.05, 0, 1.55, -0.62, "#bfe0f2"); // la parete di vetro
+      piece(o, box, 1.8, 0.08, 0.45, 0, 0.5, -0.4, "#8a5a36"); // la panchina
+      piece(o, box, 1.8, 0.4, 0.06, 0, 0.75, -0.58, "#8a5a36");
+      piece(o, new THREE.CylinderGeometry(0.05, 0.05, 3.1, 6), 1, 1, 1, 1.9, 1.55, 0.5, "#3b3f4a"); // il cartello
+      piece(o, new THREE.CylinderGeometry(0.42, 0.42, 0.08, 16).rotateX(Math.PI / 2), 1, 1, 1, 1.9, 3.1, 0.5, "#2d6bd0");
+      piece(o, box, 0.5, 0.18, 0.1, 1.9, 3.1, 0.55, "#ffffff");
+      solids.push({ kind: "box", x: sx, z: sz, hw: 1.6, hd: 0.9, rot: ry, y0: o.position.y - 1, y1: o.position.y + 2.6 });
+      const stand = new THREE.Vector3(sx + Math.sin(ry) * 2.6, 0, sz + Math.cos(ry) * 2.6);
+      stand.y = t.heightAt(stand.x, stand.z);
+      busStops.push({ name, x: sx, z: sz, stand, ry });
+    }
     for (const a of [1.2, 3.9, 5.7]) {
       const lx = cx + Math.cos(a) * 8.7, lz = cz + Math.sin(a) * 8.7;
       const o = at(lx, lz);
@@ -822,7 +871,7 @@ export function buildPlaces(t: Terrain, data: WorldData, rng: () => number) {
         doorsAt.push(new THREE.Vector3(hx + Math.sin(hr) * lz, 0, hz + Math.cos(hr) * lz));
         i++;
       }
-      village(x, z, doorsAt);
+      village(x, z, doorsAt, p.name);
     }
     if (false) {    } else if (!data.huts.some((v) => v.kind === "paese" && Math.hypot(v.p[0] * S - x, v.p[1] * S - z) < 14)) house(x, z, 4.5, 3.5, 2.6, rot, "baita"); // non in mezzo alla piazza di un paese
   }
@@ -837,7 +886,7 @@ export function buildPlaces(t: Terrain, data: WorldData, rng: () => number) {
       group.add(m);
     }
   }
-  return { group, doors, solids };
+  return { group, doors, solids, busStops };
 }
 
 export async function loadWorld() {

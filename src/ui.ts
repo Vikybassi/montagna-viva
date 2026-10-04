@@ -226,8 +226,8 @@ addLayer({
 
 // ---------- pannelli (zaino da preparare, pausa, crediti) ----------
 let panelOpen = false;
-let phoneOpen = false, insideOpen = false, callOpen = false;
-const refreshBusy = () => setBusy(panelOpen || !!pending || phoneOpen || insideOpen || callOpen);
+let phoneOpen = false, insideOpen = false, callOpen = false, travelOpen = false;
+const refreshBusy = () => setBusy(panelOpen || !!pending || phoneOpen || insideOpen || callOpen || travelOpen);
 /** il telefono è aperto: il gioco si ferma come per un pannello */
 export function setPhoneOpen(v: boolean) {
   phoneOpen = v;
@@ -384,6 +384,43 @@ addLayer({
     else if (k === "escape") e.preventDefault(), decline?.();
   },
 });
+
+// ---------- il viaggio in corriera: dopo pochi secondi sei arrivata ----------
+const trip = el("div", "travel");
+trip.setAttribute("aria-live", "polite");
+trip.innerHTML = `<div class="tr-sun"></div><div class="tr-far"></div><div class="tr-hills"></div><div class="tr-trees"></div><div class="tr-ground"></div><div class="tr-road"><i></i></div>
+  <svg class="tr-bus" viewBox="0 0 220 110" aria-hidden="true"><g class="tr-body"><rect x="6" y="14" width="208" height="68" rx="16" fill="#2d6bd0"/><rect x="6" y="52" width="208" height="12" fill="#ffd84d"/><rect x="22" y="26" width="38" height="26" rx="6" fill="#d8eefb"/><rect x="68" y="26" width="38" height="26" rx="6" fill="#d8eefb"/><rect x="114" y="26" width="38" height="26" rx="6" fill="#d8eefb"/><rect x="164" y="22" width="40" height="40" rx="8" fill="#d8eefb"/><circle cx="26" cy="72" r="5" fill="#fff3a6"/><circle cx="46" cy="74" r="12" fill="#2a2e3a"/></g><g class="tr-wheel" style="transform-origin:46px 84px"><circle cx="46" cy="84" r="16" fill="#2a2e3a"/><circle cx="46" cy="84" r="7" fill="#b9bfd0"/><path d="M46 70v28M32 84h28" stroke="#6b7186" stroke-width="3"/></g><g class="tr-wheel" style="transform-origin:170px 84px"><circle cx="170" cy="84" r="16" fill="#2a2e3a"/><circle cx="170" cy="84" r="7" fill="#b9bfd0"/><path d="M170 70v28M156 84h28" stroke="#6b7186" stroke-width="3"/></g></svg>
+  <div class="tr-card"><p class="tr-k">Corriera per</p><h2 class="tr-t"></h2><p class="tr-from"></p><p class="tr-clock"></p><p class="tr-skip">Spazio o clic per arrivare subito</p></div>`;
+root.appendChild(trip);
+let tripSkip = false;
+trip.addEventListener("click", () => (tripSkip = true));
+addLayer({ name: "viaggio", priority: 95, modal: true, active: () => travelOpen, key: (k, e) => {
+  if (k === " " || k === "enter" || k === "escape") e.preventDefault(), (tripSkip = true);
+} });
+/** si è chiesto di saltare il resto del viaggio */
+export const travelSkipped = () => tripSkip;
+/**
+ * Il viaggio: la schermata si accende, `run` fa passare il tempo e porta la giocatrice a destinazione (mentre tutto è
+ * coperto), poi si riapre sul posto. `setClock` aggiorna l'ora sul finestrino.
+ */
+export async function travel(o: { from: string; to: string }, run: (setClock: (t: string) => void) => Promise<void>) {
+  tripSkip = false;
+  trip.querySelector(".tr-t")!.textContent = o.to;
+  trip.querySelector(".tr-from")!.textContent = `da ${o.from}`;
+  travelOpen = true;
+  refreshBusy();
+  trip.classList.add("on");
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  trip.classList.add("show");
+  await new Promise((r) => setTimeout(r, 450));
+  await run((t) => (trip.querySelector(".tr-clock")!.textContent = t));
+  await new Promise((r) => setTimeout(r, tripSkip ? 80 : 350));
+  trip.classList.remove("show");
+  await new Promise((r) => setTimeout(r, 450));
+  trip.classList.remove("on");
+  travelOpen = false;
+  refreshBusy();
+}
 
 // ---------- dentro un rifugio o un bivacco (al riparo dal temporale) ----------
 const inside = el("div", "inside");

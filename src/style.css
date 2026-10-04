@@ -403,6 +403,7 @@ body:not(.playing) .netpill { display: none; }
 .map-btns button { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 10px; background: #fff; color: var(--ph-ink); font: 700 18px var(--display); box-shadow: 0 2px 6px rgba(18, 66, 58, 0.25); cursor: pointer; }
 .map-btns button:hover { background: var(--ph-mint); }
 .map-legend .cai { color: #d4322c; }
+.map-legend .bs { color: #2d6bd0; }
 .ph-map .map-legend { justify-content: center; margin-top: 6px; font-size: 11px; }
 /* sullo smartphone vero: il telefono del gioco occupa lo schermo, senza mano */
 @media (max-width: 760px) {
@@ -586,3 +587,28 @@ body.finding .goal, body.finding .tools, body.finding #hint, body.finding .netpi
 /* il gioco aspetta (dialogo, pannello, telefono, rifugio): i pulsanti di gioco e la riga dei comandi si fanno da parte */
 body.busy .tools, body.busy #hint, body.busy .run, body.busy .netpill { opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 body.busy .tools { visibility: hidden; transition: opacity 0.2s, visibility 0s 0.2s; }
+
+/* ---------- il viaggio in corriera ---------- */
+.travel { position: fixed; inset: 0; z-index: 40; display: none; overflow: hidden; background: linear-gradient(#78c0f0 0%, #cdeafc 56%, #8fcb74 56%); opacity: 0; transition: opacity 0.45s; }
+.travel.on { display: block; }
+.travel.show { opacity: 1; }
+.tr-sun { position: absolute; top: 9%; right: 14%; width: 90px; height: 90px; border-radius: 50%; background: #fff6bf; box-shadow: 0 0 60px 20px rgba(255, 246, 191, 0.7); }
+.tr-far, .tr-hills, .tr-trees, .tr-ground { position: absolute; left: 0; width: 200%; will-change: transform; animation: tr-slide linear infinite; }
+.tr-far { bottom: 44%; height: 24%; background: radial-gradient(ellipse 18% 100% at 50% 100%, #a9bfdc 99%, transparent 100%) 0 0 / 22% 100% repeat-x; animation-duration: 26s; }
+.tr-hills { bottom: 44%; height: 17%; background: radial-gradient(ellipse 16% 100% at 50% 100%, #6fb36a 99%, transparent 100%) 0 0 / 14% 100% repeat-x; animation-duration: 11s; }
+.tr-trees { bottom: 39%; height: 14%; background: conic-gradient(from 150deg at 50% 70%, transparent 0 0deg, #2f8a52 0 60deg, transparent 60deg) 0 0 / 5% 100% repeat-x; animation-duration: 3.2s; }
+.tr-ground { bottom: 0; height: 40%; width: 100%; animation: none; background: linear-gradient(#92cf78 0 28%, #7ac263 28% 100%); }
+.tr-road { position: absolute; left: 0; right: 0; bottom: 14%; height: 15%; background: #6b6f7c; overflow: hidden; }
+.tr-road i { position: absolute; left: 0; top: 46%; width: 200%; height: 7%; background: repeating-linear-gradient(90deg, #fff 0 60px, transparent 60px 140px); animation: tr-slide 0.7s linear infinite; }
+@keyframes tr-slide { to { transform: translateX(-50%); } }
+.tr-bus { position: absolute; left: 50%; bottom: 14%; width: min(46vw, 320px); transform: translateX(-50%); animation: tr-bounce 0.42s ease-in-out infinite; }
+@keyframes tr-bounce { 50% { transform: translateX(-50%) translateY(-5px); } }
+.tr-wheel { animation: tr-spin 0.35s linear infinite; }
+@keyframes tr-spin { to { transform: rotate(360deg); } }
+.tr-card { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: min(86vw, 420px); padding: 16px 22px 14px; border-radius: 22px; background: rgba(255, 255, 255, 0.95); box-shadow: 0 16px 40px -16px rgba(20, 30, 60, 0.6); text-align: center; }
+.tr-k { margin: 0; font: 600 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.tr-t { margin: 2px 0 0; font: 800 clamp(24px, 5vw, 34px) var(--display); letter-spacing: -0.02em; color: var(--ink); }
+.tr-from { margin: 0; font: 500 13px var(--display); color: #4a4350; }
+.tr-clock { margin: 6px 0 0; font: 700 22px var(--mono); color: var(--ink); }
+.tr-skip { margin: 6px 0 0; font: 500 11px var(--mono); color: #7a7284; }
+@media (prefers-reduced-motion: reduce) { .tr-far, .tr-hills, .tr-trees, .tr-road i, .tr-bus, .tr-wheel { animation: none; } }
