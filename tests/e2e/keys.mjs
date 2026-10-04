@@ -13,8 +13,11 @@ export default async function keys(browser) {
   check(await until(page, () => (document.querySelector(".act.on")?.textContent ?? "").includes("Marta")), "vicino a Marta compare «Parla con Marta»");
   await page.keyboard.press("e");
   check(await until(page, () => window.__mv.layer() === "dialogo"), `E da Marta apre un dialogo (livello: ${await layer()})`);
+  check(await until(page, () => document.querySelectorAll(".dlg.on .opt").length > 1), `Marta propone le missioni (a schermo: «${(await page.evaluate(() => document.querySelector(".dlg")?.textContent ?? "")).slice(0, 120)}»)`);
   await page.keyboard.press("1");
-  check(await until(page, () => window.__mv.state.active === "rientro" && window.__mv.layer() === "dialogo"), "dopo la scelta Marta spiega la missione");
+  const ok = await until(page, () => window.__mv.state.active === "rientro" && window.__mv.layer() === "dialogo", null, 40000);
+  const seen = await page.evaluate(() => ({ active: window.__mv.state.active, layer: window.__mv.layer(), dlg: (document.querySelector(".dlg")?.textContent ?? "").slice(0, 120) }));
+  check(ok, `dopo la scelta Marta spiega la missione (missione: ${seen.active}, livello: ${seen.layer}, a schermo: «${seen.dlg}»)`);
   await page.keyboard.press("e");
   await until(page, () => window.__mv.layer() !== "dialogo", null, 5000);
   // qualche fotogramma in più: se lo stesso E riaprisse Marta, si vedrebbe adesso
