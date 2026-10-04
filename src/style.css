@@ -612,3 +612,40 @@ body.busy .tools { visibility: hidden; transition: opacity 0.2s, visibility 0s 0
 .tr-clock { margin: 6px 0 0; font: 700 22px var(--mono); color: var(--ink); }
 .tr-skip { margin: 6px 0 0; font: 500 11px var(--mono); color: #7a7284; }
 @media (prefers-reduced-motion: reduce) { .tr-far, .tr-hills, .tr-trees, .tr-road i, .tr-bus, .tr-wheel { animation: none; } }
+
+/* ---------- la schermata iniziale: il titolo sopra la valle, un solo pulsante ---------- */
+#intro { display: block; padding: 0; background: linear-gradient(to top, rgba(35, 26, 43, 0.82) 0%, rgba(35, 26, 43, 0.35) 38%, rgba(35, 26, 43, 0) 62%), linear-gradient(to bottom, rgba(35, 26, 43, 0.35), rgba(35, 26, 43, 0) 24%); }
+#intro .hero { position: absolute; left: clamp(20px, 6vw, 80px); bottom: clamp(70px, 14vh, 140px); max-width: min(640px, calc(100vw - 40px)); color: #fff; text-shadow: 0 2px 24px rgba(20, 12, 30, 0.55); }
+#intro .kicker { margin: 0; font: 600 12px var(--mono); letter-spacing: 0.22em; text-transform: uppercase; color: #ffd9c8; }
+#intro h1 { margin: 4px 0 8px; font: 800 clamp(54px, 10vw, 128px) / 0.92 var(--display); letter-spacing: -0.045em; }
+#intro .tagline { margin: 0 0 22px; font: 500 clamp(17px, 2.2vw, 22px) / 1.35 var(--display); max-width: 30em; }
+#intro #start { padding: 16px 34px; border: 0; border-radius: 999px; background: #fff; color: var(--ink); font: 800 18px var(--display); text-shadow: none; box-shadow: 0 14px 36px -14px rgba(0, 0, 0, 0.7); cursor: pointer; transition: transform 0.15s; }
+#intro #start:hover:not(:disabled) { transform: translateY(-2px) scale(1.03); background: var(--accent); color: #fff; }
+#intro #start:disabled { opacity: 0.7; cursor: progress; }
+#intro #loading { margin: 10px 0 0; font: 500 13px var(--mono); }
+#intro .who-am-i { margin: 18px 0 0; padding: 0; background: none; text-shadow: none; max-width: 420px; }
+#intro .who-am-i summary { cursor: pointer; font: 500 14px var(--display); color: #fff; text-shadow: 0 1px 10px rgba(20, 12, 30, 0.7); list-style: none; }
+#intro .who-am-i summary::-webkit-details-marker { display: none; }
+#intro .who-am-i summary::before { content: "▸ "; }
+#intro .who-am-i[open] summary::before { content: "▾ "; }
+#intro .who-am-i[open] { padding: 14px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.94); color: var(--ink); }
+#intro .who-am-i[open] summary { color: var(--ink); text-shadow: none; }
+#intro .foot { position: absolute; left: clamp(20px, 6vw, 80px); right: 20px; bottom: 16px; margin: 0; font: 500 11px / 1.45 var(--mono); color: rgba(255, 255, 255, 0.78); text-shadow: 0 1px 8px rgba(20, 12, 30, 0.8); }
+#intro .foot button { padding: 0; border: 0; background: none; color: #fff; font: inherit; text-decoration: underline; cursor: pointer; }
+
+/* ---------- il tutorial ---------- */
+.tutorial { position: fixed; left: 50%; bottom: max(86px, calc(env(safe-area-inset-bottom) + 76px)); transform: translate(-50%, 10px); display: grid; justify-items: center; gap: 6px; width: max-content; max-width: min(560px, calc(100vw - 32px)); padding: 12px 22px 10px; border-radius: 22px; background: rgba(255, 255, 255, 0.96); color: var(--ink); box-shadow: 0 14px 36px -14px rgba(20, 10, 30, 0.6); text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s, box-shadow 0.3s; }
+.tutorial.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.tutorial.ok { box-shadow: 0 0 0 4px #5ac28a, 0 14px 36px -14px rgba(20, 10, 30, 0.6); }
+.tut-dots { display: flex; gap: 6px; }
+.tut-dots i { width: 9px; height: 9px; border-radius: 50%; background: #e3d9e8; }
+.tut-dots i.done { background: #5ac28a; }
+.tut-dots i.cur { background: var(--accent); transform: scale(1.25); }
+.tut-t { margin: 0; font: 600 16px var(--display); }
+.tut-t kbd { font: 700 13px var(--mono); padding: 2px 7px; border-radius: 6px; background: #f1ebf4; border: 1px solid #d9cfe0; }
+.tut-skip { padding: 0; border: 0; background: none; font: 500 11px var(--mono); color: #7a7284; text-decoration: underline; cursor: pointer; }
+body.busy .tutorial { opacity: 0; pointer-events: none; }
+
+/* nella schermata iniziale: niente riga dei comandi, niente segnaposto e nomi sopra il titolo (restano solo i luoghi) */
+body:not(.playing) #hint, body:not(.playing) .tools, body:not(.playing) .netpill, body:not(.playing) .waypoint { display: none; }
+body:not(.playing) #labels .race, body:not(.playing) #labels .npc.help { display: none; }

@@ -56,13 +56,15 @@ export type Saved = {
   views: string[];
   /** i paesi dove sei arrivata in corriera */
   rides: string[];
+  /** i passi del tutorial già fatti (6 = finito o saltato) */
+  tutorial: number;
 };
 
 const KEY = "montagna-viva:v1";
 /** tutte le chiavi del gioco nel browser: progressi, album, taccuino, profilo, impostazioni */
 export const KEYS = { state: KEY, album: "montagna-viva:album", notebook: "montagna-viva:taccuino", me: "montagna-viva:me", settings: "montagna-viva:settings" };
 export const SAVE_VERSION = 2;
-export const empty = (): Saved => ({ version: SAVE_VERSION, diary: [], pack: [], packed: false, missions: {}, active: null, bestRun: null, seen: [], stamps: [], summits: [], litter: [], skipBest: 0, boulder: false, shots: 0, battery: 0.86, ometti: 0, tasks: [], badges: [], sheltered: false, owned: [], outfit: { cappello: "c-berretto", occhiali: null, collo: null, bastoncini: null }, photos: {}, encounters: [], carrying: null, errand: null, followErrand: true, cairns: [], blocks: [], events: [], water: 1, thirst: 0, views: [], rides: [] });
+export const empty = (): Saved => ({ version: SAVE_VERSION, diary: [], pack: [], packed: false, missions: {}, active: null, bestRun: null, seen: [], stamps: [], summits: [], litter: [], skipBest: 0, boulder: false, shots: 0, battery: 0.86, ometti: 0, tasks: [], badges: [], sheltered: false, owned: [], outfit: { cappello: "c-berretto", occhiali: null, collo: null, bastoncini: null }, photos: {}, encounters: [], carrying: null, errand: null, followErrand: true, cairns: [], blocks: [], events: [], water: 1, thirst: 0, views: [], rides: [], tutorial: 0 });
 
 /**
  * Le migrazioni: da una versione alla successiva. Si applicano in ordine a partire dalla versione del salvataggio.
@@ -110,6 +112,9 @@ export function sanitize(raw: unknown): Saved {
   if (typeof s.outfit.cappello !== "string") s.outfit.cappello = "c-berretto";
   // una missione già finita non può restare quella da seguire (salvataggi di prima: l'obiettivo restava vuoto)
   if (s.active && (s.missions as Record<string, string>)[s.active] === "done") s.active = null;
+  s.tutorial = Math.min(6, Math.max(0, Math.round(s.tutorial)));
+  // chi ha già preparato lo zaino (o fatto qualcosa) non rivede il tutorial: i salvataggi di prima valgono come finito
+  if (r.tutorial === undefined && (s.packed || s.ometti > 0 || s.diary.length > 0)) s.tutorial = 6;
   s.version = SAVE_VERSION;
   return s;
 }

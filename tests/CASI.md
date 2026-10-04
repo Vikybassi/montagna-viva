@@ -75,6 +75,8 @@ Le prove nel browser aspettano condizioni, non tempi fissi: su GitHub il gioco f
 | 26j | Panorama da rifugi, bivacchi e belvedere | Ogni punto ha «Guarda il panorama» libero (23 rifugi e bivacchi); le cime si vedono solo se la linea di vista sul terreno è libera, una per direzione, senza quote senza nome; dall'Omio almeno tre cime; conta per i compiti e per il diario | unit `panorama`, e2e `panorama` |
 | 26k | Fontane e sorgenti | Sono i 35 punti veri di OpenStreetMap (più una fontana di paese dove non ce n'è una vicina) | e2e `panorama`, `drink` |
 | 26l | Corriera tra i paesi | 7 fermate libere e con l'invito; corsa ogni mezz'ora dalle 7 alle 19; si aspetta la prossima, si sceglie dove andare, il viaggio dura pochi secondi e l'orologio avanza di attesa e viaggio; si arriva davanti alla pensilina; dopo le 19 e col temporale non parte; chi ti segue (Luca) sale con te; in compagnia il tempo non avanza | unit `timetable`, e2e `bus` |
+| 26m | Tutorial dei primi minuti | Una partita nuova lo vede: camminare, guardarsi intorno, saltare, andare da Marta, parlarle, aprire il telefono; ogni passo si completa facendolo e dà 5 ometti alla fine; si può saltare; chi ha già una partita (zaino fatto, ometti, diario) non lo rivede; la telefonata del temporale aspetta che finisca | unit `tutorial`, e2e `tutorial` |
+| 26n | Schermata iniziale | Titolo grande sopra il paese che gira piano, un solo pulsante, nome e giacca in un menu a scomparsa; niente comandi, segnaposto o etichette sopra il titolo | a mano |
 | 26c | Una foto nuova | Puntino sulla scheda Foto; album e taccuino nel telefono; un tocco ingrandisce, Esc richiude solo la foto | e2e `photo` |
 
 ## Tempo e meteo (l'orologio che salta)

@@ -229,7 +229,10 @@ let panelOpen = false;
 let phoneOpen = false, insideOpen = false, callOpen = false, travelOpen = false;
 const refreshBusy = () => setBusy(panelOpen || !!pending || phoneOpen || insideOpen || callOpen || travelOpen);
 /** il telefono è aperto: il gioco si ferma come per un pannello */
+/** quante volte è stato aperto il telefono (il tutorial conta le aperture, non guarda se è aperto in quel momento) */
+export let phoneOpens = 0;
 export function setPhoneOpen(v: boolean) {
+  if (v && !phoneOpen) phoneOpens++;
   phoneOpen = v;
   refreshBusy();
 }
@@ -385,6 +388,27 @@ addLayer({
   },
 });
 
+// ---------- il tutorial: un passo alla volta, in basso al centro ----------
+const tut = el("div", "tutorial");
+tut.setAttribute("aria-live", "polite");
+tut.innerHTML = `<div class="tut-dots"></div><p class="tut-t"></p><button type="button" class="tut-skip">Salta il tutorial</button>`;
+root.appendChild(tut);
+tut.querySelector(".tut-skip")!.addEventListener("click", () => tools.onSkipTutorial());
+export function setTutorial(o: { step: number; total: number; html: string } | null) {
+  if (!o) return void tut.classList.remove("on");
+  tut.querySelector(".tut-dots")!.innerHTML = Array.from({ length: o.total }, (_, i) => `<i class="${i < o.step ? "done" : i === o.step ? "cur" : ""}"></i>`).join("");
+  tut.querySelector(".tut-t")!.innerHTML = o.html;
+  tut.classList.remove("ok");
+}
+/** un passo fatto: la scheda si illumina un attimo */
+export function tutorialStepDone() {
+  tut.classList.add("ok");
+}
+/** il tutorial si vede solo quando si gioca (non durante dialoghi e pannelli) */
+export function showTutorial(on: boolean) {
+  tut.classList.toggle("on", on);
+}
+
 // ---------- il viaggio in corriera: dopo pochi secondi sei arrivata ----------
 const trip = el("div", "travel");
 trip.setAttribute("aria-live", "polite");
@@ -524,6 +548,7 @@ export const tools = {
   onFollow: (_kind: "missione" | "commissione") => {},
   /** riprendere una missione iniziata e lasciata a metà */
   onResume: (_id: string) => {},
+  onSkipTutorial: () => {},
   onCamera: () => {},
   onRun: () => {},
   onDrink: () => {},

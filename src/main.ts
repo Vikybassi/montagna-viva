@@ -139,6 +139,7 @@ let uphill = 0; // quanto si alza la telecamera in salita (0–0,7)
 let camK = 14; // quanto in fretta la telecamera raggiunge il suo posto (lenta quando vola verso un'inquadratura)
 const lookAt = new THREE.Vector3();
 let wasClimbing = false;
+let introK = 1; // 1 = la telecamera sorvola il paese sotto il titolo, 0 = dietro di te
 /** la fotocamera: in prima persona, con lo zoom e l'inclinazione dello sguardo */
 let finder: { zoom: number; pitch: number; aimAt: number; aim: ReturnType<typeof play.photo.aim> } | null = null;
 let finderDown: { x: number; y: number; moved: number } | null = null;
@@ -462,7 +463,7 @@ function snapshot() {
 // prove automatiche: ?debug espone un teletrasporto e lo stato del gioco
 if (q.has("debug"))
   Object.assign(window, {
-    __mv: { ...play.debug, busStops: places.busStops, hours: () => hours, setCinema: (v: { pos: THREE.Vector3; target: THREE.Vector3 } | null) => (cinema = v), grass, bushes: bushes.count, obstacles, weather: play.weather, sound, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
+    __mv: { ...play.debug, hiker, busStops: places.busStops, hours: () => hours, setCinema: (v: { pos: THREE.Vector3; target: THREE.Vector3 } | null) => (cinema = v), grass, bushes: bushes.count, obstacles, weather: play.weather, sound, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
   });
 
 // le ombre delle montagne, lette da tutti i materiali (anche persone e animali appena aggiunti)
@@ -594,7 +595,11 @@ function frame() {
     yaw += d * (1 - Math.exp(-1.2 * dt));
   }
   const p = hiker.root.position;
-  let cdist = dist, cpitch = pitch;
+  // prima di iniziare la telecamera sorvola piano il paese (sotto il titolo); quando inizi scende dietro di te
+  introK += ((started ? 0 : 1) - introK) * (1 - Math.exp(-(started ? 1.6 : 4) * dt));
+  // il sorvolo gira piano finché non inizi; quando inizi, la visuale che hai (o che scegli) resta tua: scende solo di quota
+  if (!started) yaw += dt * 0.06;
+  let cdist = dist + introK * 24, cpitch = pitch + introK * 0.2;
   if (hiker.gliding) {
     cdist = Math.max(dist, 17);
     cpitch = 0.22;
@@ -784,6 +789,7 @@ startBtn.addEventListener("click", () => {
   saveMe(me);
   net.connect();
   started = true;
+  yaw = hiker.heading + Math.PI; // al via la telecamera si mette dietro di te (poi la visuale è tua)
   // se c'era qualcosa in corso: bentornata, ecco dov'eri rimasta (dopo un attimo, a gioco partito)
   setTimeout(() => void play.welcomeBack(), 900);
   sound.start();

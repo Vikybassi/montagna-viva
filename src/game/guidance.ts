@@ -46,7 +46,7 @@ export function setupGuidance(w: World, engine: QuestEngine, routes: Routes, cli
       } else ui.pointGoal(null, null);
       // segnaposto e strada automatica verso il punto del passo corrente (se non stai seguendo una strada scelta da te)
       const mpos = guide || ac ? null : cur?.pos ?? null; // in parete niente segnaposto davanti alla roccia
-      marker.visible = !!mpos;
+      marker.visible = !!mpos && document.body.classList.contains("playing"); // niente rombo e colonna di luce sotto il titolo
       if (mpos) {
         marker.position.set(mpos.x, T.heightAt(mpos.x, mpos.z), mpos.z);
         gem.rotation.y += dt * 1.5;
