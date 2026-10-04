@@ -61,18 +61,81 @@ export function setQuest(title: string | null, steps: QuestStep[], other: typeof
 }
 
 // ---------- avvisi ----------
+// Due canali, per non coprire la scena:
+// - i messaggi (consigli, avvisi, storia) in alto al centro, uno alla volta, in fila; quelli importanti passano avanti;
+// - le ricompense (compiti, diario, timbri) piccole in alto a sinistra, al massimo tre.
 const toasts = el("div", "toasts");
 toasts.setAttribute("aria-live", "polite");
 root.appendChild(toasts);
+const chips = el("div", "chips");
+chips.setAttribute("aria-live", "polite");
+root.appendChild(chips);
+const queue: { html: string; kind: string }[] = [];
+let showing: HTMLElement | null = null, hideTimer = 0;
+const textLen = (html: string) => html.replace(/<[^>]+>/g, "").length;
+function hideCurrent(after: number) {
+  clearTimeout(hideTimer);
+  hideTimer = window.setTimeout(() => {
+    const t = showing;
+    if (!t) return;
+    t.classList.remove("on");
+    setTimeout(() => {
+      t.remove();
+      if (showing === t) showing = null;
+      showNext();
+    }, 350);
+  }, after);
+}
+function showNext() {
+  if (showing || !queue.length) return;
+  const { html, kind } = queue.shift()!;
+  const t = el("div", `toast ${kind}`, html);
+  t.dataset.html = html;
+  toasts.appendChild(t);
+  showing = t;
+  requestAnimationFrame(() => t.classList.add("on"));
+  // il tempo per leggerlo (più breve se altri aspettano)
+  const read = Math.min(7000, Math.max(2600, 1800 + textLen(html) * 45));
+  hideCurrent(queue.length ? Math.min(read, 3000) : read);
+}
 export function toast(html: string, kind = "") {
   if (kind.includes("stamp")) newsFn("spille");
-  const t = el("div", `toast ${kind}`, html);
-  toasts.appendChild(t);
-  requestAnimationFrame(() => t.classList.add("on"));
-  setTimeout(() => {
-    t.classList.remove("on");
-    setTimeout(() => t.remove(), 600);
-  }, 4200);
+  // le ricompense: piccole, a lato
+  if (/\b(task|fact|stamp)\b/.test(kind)) {
+    const c = el("div", `toast chip ${kind}`, html);
+    chips.appendChild(c);
+    while (chips.children.length > 3) chips.firstElementChild!.remove();
+    requestAnimationFrame(() => c.classList.add("on"));
+    setTimeout(() => {
+      c.classList.remove("on");
+      setTimeout(() => c.remove(), 400);
+    }, 3800);
+    return;
+  }
+  // i numeri grandi (3, 2, 1, via!) subito, al posto di quello che c'è
+  if (html.includes('class="big"')) {
+    queue.unshift({ html, kind });
+    if (showing) hideCurrent(0);
+    else showNext();
+    return;
+  }
+  // niente doppioni
+  if (showing?.dataset.html === html || queue.some((q) => q.html === html)) return;
+  if (kind.includes("now")) {
+    // la risposta a un tuo gesto (un sorso, un tuffo): subito, al posto di quello che c'è
+    queue.unshift({ html, kind });
+    if (showing) hideCurrent(0);
+  } else if (kind.includes("warn")) {
+    // gli avvisi importanti passano avanti, e accorciano quello che si sta leggendo
+    queue.unshift({ html, kind });
+    if (showing && !showing.classList.contains("warn")) hideCurrent(500);
+  } else queue.push({ html, kind });
+  // in fila al massimo cinque: i più vecchi (non importanti) lasciano il posto
+  while (queue.length > 5) {
+    const i = queue.findIndex((q) => !q.kind.includes("warn"));
+    queue.splice(i >= 0 ? i : queue.length - 1, 1);
+  }
+  showNext();
 }
 export function learned(f: Fact | null) {
   if (!f) return;

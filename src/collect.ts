@@ -110,7 +110,7 @@ export function buildCollect(t: Terrain, data: WorldData, hiker: Hiker, rng: () 
         state.litter.push(myId);
         save();
         sound.ui("pick");
-        ui.toast(`<b>Rifiuto nello zaino</b> ${state.litter.length} riportati a valle`);
+        ui.toast(`<b>Rifiuto nello zaino</b> ${state.litter.length} riportati a valle`, "now");
         ui.learned(learn("rifiuti"));
       },
     });
@@ -152,7 +152,7 @@ export function buildCollect(t: Terrain, data: WorldData, hiker: Hiker, rng: () 
     flash.className = "flash";
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 600);
-    ui.toast(`<b>Foto nell'album</b> ${place}`);
+    ui.toast(`<b>Foto nell'album</b> ${place}`, "now");
   }
 
   // ---------- rimbalzello sui laghi ----------
@@ -191,7 +191,7 @@ export function buildCollect(t: Terrain, data: WorldData, hiker: Hiker, rng: () 
               save();
             }
             setTimeout(() => {
-              ui.toast(n === 0 ? "<b>Plof!</b> Il sasso è affondato subito." : `<b>${n} rimbalzi!</b>${n === state.skipBest && n > 0 ? " Nuovo record" : ` Record: ${state.skipBest}`}`);
+              ui.toast(n === 0 ? "<b>Plof!</b> Il sasso è affondato subito." : `<b>${n} rimbalzi!</b>${n === state.skipBest && n > 0 ? " Nuovo record" : ` Record: ${state.skipBest}`}`, "now");
               if (n >= 8) sound.ui("done");
             }, 400 + n * 260);
           },

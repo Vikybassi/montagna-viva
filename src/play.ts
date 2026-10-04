@@ -112,7 +112,7 @@ export function setupPlay(c: PlayCtx) {
     else state.errand = null;
     save();
     routes.resetMissionRoute();
-    ui.toast(trackedKind === "missione" ? "<b>Missione in pausa.</b> La riprendi parlando con Marta, a San Martino." : "<b>Commissione in pausa.</b> La riprendi parlando di nuovo con chi te l'ha chiesta.");
+    ui.toast(trackedKind === "missione" ? "<b>Missione in pausa.</b> La riprendi parlando con Marta, a San Martino." : "<b>Commissione in pausa.</b> La riprendi parlando di nuovo con chi te l'ha chiesta.", "now");
   }
 
   return {
@@ -167,7 +167,7 @@ export function setupPlay(c: PlayCtx) {
         }
         if (!aim || !aim.ok) {
           addPhoto({ img, place: c.place(), time });
-          ui.toast(aim ? `<b>${SUBJECTS[aim.subject].name}</b> ${aim.why}` : "<b>Foto nell'album</b> Per il taccuino metti al centro un fiore o un animale.", aim ? "warn" : "");
+          ui.toast(aim ? `<b>${SUBJECTS[aim.subject].name}</b> ${aim.why}` : "<b>Foto nell'album</b> Per il taccuino metti al centro un fiore o un animale.", aim ? "warn now" : "now");
           return;
         }
         const s = SUBJECTS[aim.subject];
@@ -181,7 +181,7 @@ export function setupPlay(c: PlayCtx) {
           ui.toast(`<small>Nuova scheda nel taccuino</small><b>${s.name}</b>`, "task");
           sound.ui("learn");
           if (s.fact) ui.learned(learn(s.fact));
-        } else ui.toast(`<b>Bella foto!</b> ${s.name}`);
+        } else ui.toast(`<b>Bella foto!</b> ${s.name}`, "now");
         // fotografare un animale da lontano vale come osservarlo (per la missione del guardiaparco)
         if (aim.subject === "stambecco" || aim.subject === "marmotta" || aim.subject === "aquila" || aim.subject === "camoscio") void missions.observe(aim.subject);
       },

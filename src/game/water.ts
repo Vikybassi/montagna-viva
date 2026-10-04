@@ -53,7 +53,7 @@ export function setupWater(w: World, v: Valley) {
     hiker.drink();
     sound.gulp();
     keep();
-    ui.toast(fill ? `<b>Acqua fresca</b> ${where}: hai bevuto e la borraccia è piena.` : `<b>Acqua fresca</b> ${where}: hai bevuto. Con una borraccia nello zaino potresti portarne con te.`);
+    ui.toast(fill ? `<b>Acqua fresca</b> ${where}: hai bevuto e la borraccia è piena.` : `<b>Acqua fresca</b> ${where}: hai bevuto. Con una borraccia nello zaino potresti portarne con te.`, "now");
     ui.learned(learn("acqua"));
   }
   const drinkable = () => th.dry > 0.1 || (has("acqua") && th.water < 0.99);
@@ -78,19 +78,19 @@ export function setupWater(w: World, v: Valley) {
     /** un sorso dalla borraccia (B); true se hai bevuto */
     drink() {
       if (!has("acqua")) {
-        ui.toast("<b>Non hai la borraccia nello zaino.</b> Puoi bere alle fontane dei paesi e ai rifugi.", "warn");
+        ui.toast("<b>Non hai la borraccia nello zaino.</b> Puoi bere alle fontane dei paesi e ai rifugi.", "warn now");
         return false;
       }
       if (!th.sip()) {
         const nearStream = v.waterDist(hiker.root.position.x, hiker.root.position.z) < 25;
-        ui.toast(nearStream ? "<b>La borraccia è vuota.</b> Il torrente è limpido, ma sotto i pascoli l'acqua può non essere buona da bere: meglio una fontana o un rifugio." : "<b>La borraccia è vuota.</b> Riempila a una fontana o a un rifugio.", "warn");
+        ui.toast(nearStream ? "<b>La borraccia è vuota.</b> Il torrente è limpido, ma sotto i pascoli l'acqua può non essere buona da bere: meglio una fontana o un rifugio." : "<b>La borraccia è vuota.</b> Riempila a una fontana o a un rifugio.", "warn now");
         if (nearStream) ui.learned(learn("torrenti"));
         return false;
       }
       hiker.drink();
       sound.gulp();
       keep();
-      ui.toast(`<b>Un sorso</b> ${th.sips ? `nella borraccia ne restano ${th.sips}` : "la borraccia è finita"}`);
+      ui.toast(`<b>Un sorso</b> ${th.sips ? `nella borraccia ne restano ${th.sips}` : "la borraccia è finita"}`, "now");
       ui.learned(learn("acqua"));
       return true;
     },
