@@ -18,6 +18,8 @@ export type WorldData = {
   huts: Place[];
   peaks: Peak[];
   views: { name: string | null; p: Pt }[];
+  /** fontane e sorgenti vere: d = acqua potabile, t = rubinetto, s = sorgente */
+  springs: { name: string | null; k: "d" | "t" | "s"; p: Pt }[];
   remenno: Pt | null;
   /** m: segnato (rete CAI, con `ref` il numero o il nome del percorso); f: traccia debole (informale, poco visibile) */
   paths: { k: "p" | "t" | "a" | "r"; pts: Pt[]; m?: 1; ref?: string; f?: 1 }[];

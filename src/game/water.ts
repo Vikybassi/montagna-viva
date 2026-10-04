@@ -13,32 +13,47 @@ import type { Valley } from "./valley";
  * si impara che l'acqua limpida non è per forza buona da bere.
  */
 export function setupWater(w: World, v: Valley) {
-  const { scene, T, data, hiker } = w;
+  const { c, scene, T, data, hiker } = w;
   const th = new Thirst(state.water, state.thirst);
 
-  // le fontane: una in ogni paese, accanto alla chiesa (vasca di pietra, cannella, acqua che scorre)
-  const stone = new THREE.MeshStandardMaterial({ color: "#a9a39a", flatShading: true, roughness: 0.9 });
+  // le fontane e le sorgenti: quelle vere (OpenStreetMap: 35 nella valle, dal fondovalle ai rifugi) e, nei paesi che non
+  // ne hanno una vicina, una fontana di pietra accanto alla chiesa
+  const stone = new THREE.MeshStandardMaterial({ color: "#a9a39a", roughness: 0.9 });
+  const wood = new THREE.MeshStandardMaterial({ color: "#8a5a36", roughness: 0.9 });
   const waterMat = new THREE.MeshStandardMaterial({ color: "#5aa6bf", roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.85 });
+  const pipe = new THREE.MeshStandardMaterial({ color: "#5b5650" });
   const fountains: THREE.Vector3[] = [];
-  for (const p of data.huts.filter((h) => h.kind === "paese")) {
-    const x = p.p[0] * S + 4.5, z = p.p[1] * S + 2.5, y = T.heightAt(x, z);
-    const g = new THREE.Group();
-    const basin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 0.9), stone);
+  const names = new Map<string, string>();
+  /** una fontana: vasca di pietra con colonnina (paese) o beverone di legno con il tubo (sorgente in quota) */
+  const build = (x: number, z: number, kind: "pietra" | "legno", name: string | null) => {
+    const y = T.heightAt(x, z), g = new THREE.Group(), m = kind === "pietra" ? stone : wood;
+    const basin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 0.9), m);
     basin.position.y = 0.3;
     const pool = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.7), waterMat);
     pool.position.y = 0.56;
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.3, 0.3), stone);
-    post.position.set(-0.6, 0.65, -0.45);
-    const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.35, 6), new THREE.MeshStandardMaterial({ color: "#5b5650" }));
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, kind === "pietra" ? 1.3 : 1.0, 0.3), m);
+    post.position.set(-0.6, kind === "pietra" ? 0.65 : 0.5, -0.45);
+    const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.35, 6), pipe);
     spout.rotation.x = Math.PI / 2;
-    spout.position.set(-0.6, 1.05, -0.2);
+    spout.position.set(-0.6, kind === "pietra" ? 1.05 : 0.8, -0.2);
     const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.5, 6), waterMat);
-    jet.position.set(-0.6, 0.8, -0.02);
+    jet.position.set(-0.6, kind === "pietra" ? 0.8 : 0.58, -0.02);
     g.add(basin, pool, post, spout, jet);
     g.position.set(x, y, z);
+    g.rotation.y = ((x * 7 + z * 3) % 6.28);
     g.traverse((o) => ((o as THREE.Mesh).castShadow = true));
     scene.add(g);
-    fountains.push(new THREE.Vector3(x, y, z));
+    const v = new THREE.Vector3(x, y, z);
+    fountains.push(v);
+    if (name) {
+      names.set(`${fountains.length - 1}`, name);
+      c.addLabel(name, "acqua potabile", x, z, 2.2, 90, "npc");
+    }
+  };
+  for (const sp of data.springs ?? []) build(sp.p[0] * S, sp.p[1] * S, T.heightAt(sp.p[0] * S, sp.p[1] * S) / S < 1300 ? "pietra" : "legno", sp.name);
+  for (const p of data.huts.filter((h) => h.kind === "paese")) {
+    const x = p.p[0] * S + 4.5, z = p.p[1] * S + 2.5;
+    if (!fountains.some((f) => Math.hypot(f.x - x, f.z - z) < 40)) build(x, z, "pietra", null);
   }
 
   const keep = () => {
@@ -58,7 +73,7 @@ export function setupWater(w: World, v: Valley) {
   }
   const drinkable = () => th.dry > 0.1 || (has("acqua") && th.water < 0.99);
   const interacts: Interact[] = [
-    ...fountains.map((p) => ({ pos: p, r: 3.5, text: () => (drinkable() ? "Bevi alla fontana" : null), act: () => atFountain("alla fontana") })),
+    ...fountains.map((p, i) => ({ pos: p, r: 3.5, text: () => (drinkable() ? (names.get(`${i}`)?.includes("Termale") ? "Bevi alla sorgente termale" : "Bevi alla fontana") : null), act: () => atFountain(names.get(`${i}`)?.includes("Termale") ? "alla sorgente termale (l'acqua sgorga tiepida dalla roccia)" : "alla fontana") })),
   ];
 
   let warned = false, nag = 0, prevY = hiker.root.position.y;

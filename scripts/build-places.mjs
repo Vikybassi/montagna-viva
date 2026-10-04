@@ -45,6 +45,20 @@ const peaks = stops.filter((e) => e.tags?.natural === "peak" && e.tags?.name && 
 const views = stops.filter((e) => e.tags?.tourism === "viewpoint" && inBox(e.lat, e.lon))
   .map((e) => ({ name: e.tags.name ?? null, p: P(e.lat, e.lon) }));
 
+// fontane e sorgenti vere (amenity=drinking_water, man_made=water_tap, natural=spring): si beve e si riempie la borraccia.
+// d = acqua potabile, t = rubinetto, s = sorgente. Punti a meno di 30 m uno dall'altro contano come uno.
+const placesAll = JSON.parse(await readFile(`${R}/places.json`, "utf8")).elements;
+const springs = [];
+for (const e of [...stops, ...placesAll]) {
+  const t = e.tags ?? {};
+  const k = t.amenity === "drinking_water" ? "d" : t.man_made === "water_tap" ? "t" : t.natural === "spring" ? "s" : null;
+  const la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon;
+  if (!k || la === undefined || !inBox(la, lo)) continue;
+  const p = P(la, lo);
+  if (springs.some((q) => Math.hypot(q.p[0] - p[0], q.p[1] - p[1]) < 30)) continue;
+  springs.push({ name: t.name ?? null, k, p });
+}
+
 // sentieri: si spezzano agli incroci (nodi OSM in comune tra più vie), così ogni incrocio resta un punto preciso e la
 // rete si può percorrere come un grafo (per suggerire la strada verso un rifugio)
 const allPaths = JSON.parse(await readFile(`${R}/paths.json`, "utf8"));
@@ -175,7 +189,7 @@ for (const e of osm) {
   const rs = e.type === "relation" ? rings(e) : e.geometry ? [e.geometry] : [];
   for (const r of rs) if (r.length > 3) cover[kind].push(simplify(r.map((g) => P(g.lat, g.lon)), kind === "forest" ? 15 : 6));
 }
-const world = { size: [meta.widthM, meta.heightM], huts, peaks, views, remenno, paths, streams, cover,
+const world = { size: [meta.widthM, meta.heightM], huts, peaks, views, springs, remenno, paths, streams, cover,
   credits: "Mappe © contributori OpenStreetMap (ODbL); terreno Copernicus GLO-30 © DLR e Airbus" };
 await writeFile("public/data/world.json", JSON.stringify(world));
 console.log({ crosses: peaks.filter((p) => p.cross).length, views: views.length, huts: huts.length, peaks: peaks.length, paths: paths.length, streams: streams.length, water: cover.water.length, glacier: cover.glacier.length, forest: cover.forest.length, remenno, kb: Math.round(JSON.stringify(world).length / 1024) });

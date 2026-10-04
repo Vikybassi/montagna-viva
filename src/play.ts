@@ -14,6 +14,7 @@ import { createPeople, setupMissions } from "./game/people";
 import { QuestEngine } from "./game/quests";
 import { setupRoutes } from "./game/routes";
 import { createWeather, setupStorm } from "./game/storm";
+import { setupPanorama } from "./game/panorama";
 import { setupWater } from "./game/water";
 import { setupValley } from "./game/valley";
 
@@ -36,6 +37,7 @@ export function setupPlay(c: PlayCtx) {
   const missions = setupMissions(w, people, valley);
   const storm = setupStorm(w, routes, valley, () => !!climbing.active() || racing());
   const water = setupWater(w, valley);
+  const panorama = setupPanorama(w);
   // dentro rifugi e bivacchi, col bel tempo: riposarsi mezz'ora (torna il fiato) e, al rifugio, bere
   storm.setExtraButtons((_p, kind) => [
     ...(kind === "rifugio" ? [{ label: "Bevi e riempi la borraccia", fn: () => water.refill() }] : []),
@@ -52,7 +54,7 @@ export function setupPlay(c: PlayCtx) {
   engine.add("commissione", () => valley.encounters.errandQuest(people.custOmio.root.position));
   engine.add("missione", missions.missionQuest);
   const guidance = setupGuidance(w, engine, routes, climbing, racing);
-  const interacts = [...missions.interacts, ...valley.interacts, ...storm.interacts, ...water.interacts, ...climbing.interacts];
+  const interacts = [...missions.interacts, ...valley.interacts, ...storm.interacts, ...water.interacts, ...panorama.interacts, ...climbing.interacts];
   const interactions = setupInteractions(w, interacts, valley, (s) => void missions.observe(s), () => !!climbing.active());
 
   // ---------- fiato ----------

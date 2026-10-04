@@ -36,7 +36,12 @@ sola, muri veri, orologio che può saltare senza rompere niente.
   camminando, di più correndo e in salita; con tanta sete il fiato dura meno e un avviso invita a bere. Fontane nei
   paesi e acqua ai rifugi; vicino a un torrente si impara che l'acqua limpida non è per forza potabile. Due voci nuove
   nel diario.
-- 11 prove nel browser.
+- **Panorama**: da ogni rifugio, bivacco e belvedere, «Guarda il panorama» elenca le cime che si vedono davvero (linea di
+  vista calcolata sul terreno), con quota, direzione e distanza. Due compiti nuovi (5 e 12 panorami) e una voce nel diario.
+- **Fontane e sorgenti vere**: i 35 punti di OpenStreetMap (compresa la sorgente termale di Bagni di Masino), con la
+  borraccia da riempire lungo i sentieri.
+- Il ghiacciaio nel tempo ora si vede cambiare (roccia scoperta sotto il ghiaccio), con il confronto con oggi.
+- 14 prove nel browser.
 
 **Dentro**
 
