@@ -232,7 +232,8 @@ export function setupMissions(w: World, people: People, v: Valley) {
     c.cinema({ pos, target: target.clone().addScaledVector(flat, 60) });
     for (;;) {
       const years: Year[] = [1850, 1950, 2025, 2050];
-      const i = await ui.say("Elena, glaciologa", `Ora vedi il ${glacier.year === 2025 ? "ghiacciaio di oggi" : glacier.year}. Quale anno vuoi vedere?`, ["1850", "1950", "Oggi", "2050 (scenario)", "Basta così"]);
+      const now = glacier.versusNow(glacier.year), cmp = glacier.year === 2025 ? "" : ` Il ghiaccio nella valle è ${now > 1 ? `circa ${now.toFixed(1).replace(".", ",")} volte quello di oggi` : `il ${Math.round(now * 100)}% di quello di oggi`}.`;
+      const i = await ui.say("Elena, glaciologa", `Ora vedi il ${glacier.year === 2025 ? "ghiacciaio di oggi" : glacier.year}.${cmp} Quale anno vuoi vedere?`, ["1850", "1950", "Oggi", "2050 (scenario)", "Basta così"]);
       if (i === 4) break;
       const y = years[i];
       glacier.setYear(y);
