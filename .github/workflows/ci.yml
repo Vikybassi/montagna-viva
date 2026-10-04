@@ -3,7 +3,7 @@ name: Verifica
 
 on:
   push:
-    branches: [main, "m*"]
+    branches: ["**"]
   pull_request:
 
 jobs:

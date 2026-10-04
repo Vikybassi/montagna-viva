@@ -26,10 +26,13 @@ export async function openGame(browser, { save = { packed: true, pack: ["frontal
   page.on("console", (m) => m.type() === "error" && !m.text().includes("WebSocket") && errors.push(m.text()));
   await page.setViewport({ width: 1280, height: 720 });
   await page.goto(`${BASE}?debug&t=${t}`, { waitUntil: "load" });
-  await page.evaluate((s) => {
+  await page.evaluate((s, ci) => {
     localStorage.clear();
     if (s) localStorage.setItem("montagna-viva:v1", JSON.stringify(s));
-  }, save);
+    // su GitHub (grafica software, lentissima) la qualità bassa, come la sceglierebbe da solo un computer lento: le prove
+    // partono prima che il gioco la misuri
+    if (ci) localStorage.setItem("montagna-viva:settings", JSON.stringify({ quality: "bassa" }));
+  }, save, !!process.env.CI);
   await page.reload({ waitUntil: "load" });
   await page.waitForFunction(() => !document.querySelector("#start").disabled, { timeout: 180000 });
   await page.evaluate(() => document.querySelector("#start").click());
