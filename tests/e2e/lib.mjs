@@ -25,7 +25,9 @@ export async function openGame(browser, { save = { packed: true, pack: ["frontal
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && !m.text().includes("WebSocket") && errors.push(m.text()));
   await page.setViewport({ width: 1280, height: 720 });
-  await page.goto(`${BASE}?debug&t=${t}`, { waitUntil: "load" });
+  // la partita si prepara da una pagina dello stesso sito che NON avvia il gioco: se si aprisse il gioco e poi si
+  // ricaricasse, su un computer lento il primo avvio finirebbe dopo e salverebbe la sua partita vuota sopra questa
+  await page.goto(new URL("data/terrain.json", BASE).href, { waitUntil: "load" });
   await page.evaluate((s, ci) => {
     localStorage.clear();
     if (s) localStorage.setItem("montagna-viva:v1", JSON.stringify(s));
@@ -33,7 +35,7 @@ export async function openGame(browser, { save = { packed: true, pack: ["frontal
     // partono prima che il gioco la misuri
     if (ci) localStorage.setItem("montagna-viva:settings", JSON.stringify({ quality: "bassa" }));
   }, save, !!process.env.CI);
-  await page.reload({ waitUntil: "load" });
+  await page.goto(`${BASE}?debug&t=${t}`, { waitUntil: "load" });
   await page.waitForFunction(() => !document.querySelector("#start").disabled, { timeout: 180000 });
   await page.evaluate(() => document.querySelector("#start").click());
   await page.waitForFunction(() => window.__mv?.started(), { timeout: 30000 });
