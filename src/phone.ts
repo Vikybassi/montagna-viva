@@ -1,8 +1,9 @@
 import { sound } from "./audio";
-import { SLOTS, WARDROBE, type Wear } from "./content";
+import { MISSIONS, SLOTS, WARDROBE, type Wear } from "./content";
 import type { Outfit } from "./player";
 import { has, save, state } from "./state";
 import { CHAPTERS, TASKS, checkTasks, isDone, taskProgress } from "./tasks";
+import { addLayer } from "./input";
 import * as ui from "./ui";
 import type { PhoneTab } from "./ui";
 
@@ -18,6 +19,7 @@ const TABS: { id: PhoneTab; name: string; key: string; icon: string }[] = [
   { id: "missioni", name: "Missioni", key: "", icon: `<path d="M6 21V4M6 4h11l-2 4 2 4H6"/>` },
   { id: "mappa", name: "Mappa", key: "M", icon: `<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/>` },
   { id: "diario", name: "Diario", key: "J", icon: `<path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10"/>` },
+  { id: "foto", name: "Foto", key: "", icon: `<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>` },
   { id: "zaino", name: "Zaino", key: "Z", icon: `<path d="M7 9a5 5 0 0 1 10 0v11H7zM9 4h6M7 14h10M10 14v2"/>` },
   { id: "spille", name: "Spille", key: "", icon: `<circle cx="12" cy="9" r="5"/><path d="M9 13l-2 8 5-3 5 3-2-8"/>` },
   { id: "armadio", name: "Armadio", key: "", icon: `<path d="M12 7.5a2.2 2.2 0 1 1 2.2-2.2M12 7.5V9l-9 7.5h18L12 9"/>` },
@@ -75,6 +77,21 @@ export class Phone {
     this.device = this.wrap.querySelector(".phone")!;
     this.statusEl = this.wrap.querySelector(".ph-status")!;
     this.body = this.wrap.querySelector(".ph-body")!;
+    // le foto: un tocco le ingrandisce dentro lo schermo, un altro (o Esc) le richiude
+    this.zoom = document.createElement("button");
+    this.zoom.type = "button";
+    this.zoom.className = "ph-zoom";
+    this.zoom.setAttribute("aria-label", "Chiudi la foto");
+    this.body.parentElement!.appendChild(this.zoom);
+    this.zoom.addEventListener("click", () => this.closeZoom());
+    this.body.addEventListener("click", (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>(".ph-photo");
+      if (!b) return;
+      const img = b.querySelector("img")!, cap = b.parentElement?.querySelector("span, b")?.textContent ?? "";
+      this.zoom.innerHTML = `<img src="${img.src}" alt="${img.alt}"><span>${cap}</span>`;
+      this.zoom.classList.add("on");
+      this.zoom.focus();
+    });
     this.wrap.querySelectorAll<HTMLButtonElement>(".ph-tabs button").forEach((b) => b.addEventListener("click", () => this.show(b.dataset.tab as PhoneTab)));
     this.wrap.querySelector(".ph-x")!.addEventListener("click", () => this.close());
     // un clic fuori dal telefono lo mette via
@@ -87,6 +104,12 @@ export class Phone {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-wear]");
       if (b) this.dress(b.dataset.wear!);
       // seguire l'altra cosa in corso: l'obiettivo in alto cambia subito
+      const r = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-resume]");
+      if (r) {
+        ui.tools.onResume(r.dataset.resume!);
+        sound.ui("go");
+        setTimeout(() => this.show("missioni"), 80);
+      }
       const f = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-follow]");
       if (f) {
         ui.tools.onFollow(f.dataset.follow as "missione" | "commissione");
@@ -103,20 +126,28 @@ export class Phone {
       this.news.add(t);
       this.dots();
     });
-    addEventListener("keydown", (e) => this.key(e));
+    // telefono aperto: Esc o Tab lo chiudono, numeri e lettere cambiano scheda (il gioco sotto aspetta)
+    addLayer({ name: "telefono", priority: 50, modal: true, active: () => this.isOpen, key: (k, e) => this.key(k, e) });
   }
 
-  private key(e: KeyboardEvent) {
+  /** a telefono chiuso (dal livello "mondo"): Tab lo apre, M J Z aprono subito la scheda giusta; true = tasto usato */
+  shortcut(k: string, e: KeyboardEvent) {
+    const tab = k === "tab" ? this.tab : k === "m" ? "mappa" : k === "j" ? "diario" : k === "z" || k === "i" ? "zaino" : null;
+    if (!tab || e.repeat) return false;
+    e.preventDefault();
+    this.open(k === "tab" ? undefined : tab);
+    return true;
+  }
+
+  private zoom: HTMLButtonElement;
+  private closeZoom() {
+    this.zoom.classList.remove("on");
+  }
+  private key(k: string, e: KeyboardEvent) {
     if (e.repeat) return;
-    const k = e.key.toLowerCase();
-    const playing = document.body.classList.contains("playing");
-    if (!this.isOpen) {
-      // a telefono chiuso: Tab lo apre, M J Z aprono subito la scheda giusta
-      if (!playing || ui.busy) return;
-      const tab = k === "tab" ? this.tab : k === "m" ? "mappa" : k === "j" ? "diario" : k === "z" || k === "i" ? "zaino" : null;
-      if (!tab) return;
+    if (k === "escape" && this.zoom.classList.contains("on")) {
       e.preventDefault();
-      this.open(k === "tab" ? undefined : tab);
+      this.closeZoom();
       return;
     }
     if (k === "escape" || k === "tab") {
@@ -156,6 +187,7 @@ export class Phone {
   }
 
   private show(tab: PhoneTab) {
+    this.closeZoom();
     this.tab = tab;
     this.news.delete(tab);
     this.dots();
@@ -167,7 +199,7 @@ export class Phone {
     if (tab === "mappa") {
       this.body.innerHTML = `<h2>Val Masino</h2><div class="ph-map"></div>`;
       this.map.showIn(this.body.querySelector(".ph-map")!);
-    } else this.body.innerHTML = tab === "missioni" ? this.missionsHtml() : tab === "diario" ? ui.diaryHtml() : tab === "zaino" ? ui.packHtml() : tab === "spille" ? this.badgesHtml() + ui.collectionsHtml() : this.wardrobeHtml();
+    } else this.body.innerHTML = tab === "missioni" ? this.missionsHtml() : tab === "diario" ? ui.diaryHtml() : tab === "foto" ? ui.photosHtml() : tab === "zaino" ? ui.packHtml() : tab === "spille" ? this.badgesHtml() + ui.collectionsHtml() : this.wardrobeHtml();
     this.renderStatus();
   }
 
@@ -187,6 +219,11 @@ export class Phone {
       html += `<article class="ph-card now"><p class="ph-k">In corso</p><h3>${q.title}</h3><span class="ph-prog" aria-hidden="true"><i style="width:${Math.round((n / q.steps.length) * 100)}%"></i></span><p class="ph-n">${n} di ${q.steps.length} passi</p><ol class="ph-steps">${q.steps.map((s) => `<li class="${s.done ? "done" : ""}${s.current ? " cur" : ""}">${s.text}</li>`).join("")}</ol></article>`;
     } else html += `<p class="ph-note">Le missioni grandi le scegli con Marta, a San Martino.</p>`;
     const o = ui.otherQuest;
+    // le missioni iniziate e lasciate a metà: si riprendono da qui (prima si poteva solo da Marta)
+    for (const m of MISSIONS) {
+      if (state.missions[m.id] !== "active" || state.active === m.id || m.id === "zaino") continue;
+      html += `<article class="ph-card other"><div class="ph-row"><span><p class="ph-k">Iniziata, a metà</p><h3>${m.title}</h3></span><button type="button" class="ph-follow" data-resume="${m.id}">Riprendi</button></div></article>`;
+    }
     if (o) html += `<article class="ph-card other"><div class="ph-row"><span><p class="ph-k">${o.kind === "missione" ? "Missione in pausa" : "Commissione in corso"}</p><h3>${o.title}</h3></span><button type="button" class="ph-follow" data-follow="${o.kind}">Segui</button></div></article>`;
     for (const ch of CHAPTERS) {
       const list = TASKS.filter((k) => k.chapter === ch.id);

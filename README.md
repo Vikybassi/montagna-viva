@@ -58,18 +58,21 @@ acceso. Su GitHub, a ogni push, girano la build, le prove veloci e la prova di a
 
 | Cartella | Cosa c'è |
 |---|---|
-| `src/` | il gioco (TypeScript e three.js): mondo, personaggi, missioni, telefono, arrampicata, natura, eventi |
+| `src/` | il gioco (TypeScript e three.js): mondo, personaggi, telefono, arrampicata, natura, eventi, tasti, collisioni |
+| `src/game/` | le parti del gioco messe insieme da `play.ts`: valle, persone e missioni, strade, temporale, guida |
 | `public/data/` | i dati della valle già pronti (terreno e luoghi) |
 | `scripts/` | come si costruiscono i dati della valle (`npm run data`, serve la rete) |
 | `server/` | il server facoltativo per giocare in compagnia |
 | `shared/` | nomi e frasi pronte comuni a gioco e server |
-| `tests/` | prove veloci (`unit/`) e nel browser (`e2e/`) |
+| `tests/` | prove veloci (`unit/`), nel browser (`e2e/`) e l'elenco dei casi limite (`CASI.md`) |
 
 ## Dati, crediti e licenze
 
 - Terreno: Copernicus GLO-30 Digital Elevation Model, © DLR e Airbus, programma Copernicus dell'Unione europea.
 - Sentieri, rifugi, cime, laghi, ghiacciai, boschi: © [contributori OpenStreetMap](https://www.openstreetmap.org/copyright), licenza ODbL.
 - Caratteri: Bricolage Grotesque e Geist Mono (SIL Open Font License). Grafica 3D: three.js (MIT).
+- Suoni registrati: Wikimedia Commons (CC0, pubblico dominio, CC BY, CC BY-SA) e Kenney (CC0); autori e licenze in
+  [public/audio/CREDITI.md](public/audio/CREDITI.md). Si rigenerano con `npm run audio`.
 - Il codice è distribuito con licenza MIT (vedi [LICENSE](LICENSE)); i dati mantengono le loro licenze.
 
 Montagna viva è un gioco: tempi, strade e meteo sono semplificati. Non usarlo per pianificare escursioni vere. In

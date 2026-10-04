@@ -5,14 +5,16 @@ import { Sky } from "./sky";
 import { SunMap } from "./sunmap";
 import { setupPlay } from "./play";
 import { Boulder } from "./climb";
+import { Obstacles } from "./collide";
 import { sound } from "./audio";
-import { learn } from "./state";
+import { addLayer, held, onKeyUp, top as topLayer } from "./input";
+import { learn, loadProblem, wipeProgress } from "./state";
 import { Net, loadMe, saveMe } from "./net";
 import { PHRASES as ALL_PHRASES, randomName } from "./content";
 import { Quality } from "./quality";
 import { loadSettings, saveSettings } from "./settings";
 import * as ui from "./ui";
-import { Cover, S, buildLakes, buildPlaces, buildTerrainMesh, buildTrails, buildTrees, loadWorld, waterUniforms } from "./world";
+import { Cover, S, buildLakes, buildPlaces, buildSkirt, buildTerrainMesh, buildTrails, buildTrees, edgeDistance, loadWorld, waterUniforms } from "./world";
 
 /**
  * Montagna viva — primo passo: la Val Masino vera da attraversare a piedi, dal paese di San Martino ai rifugi,
@@ -51,6 +53,8 @@ const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.3, 12
 
 const cover = new Cover(T.meta, data);
 const terrainMesh = buildTerrainMesh(T, cover);
+// oltre il bordo della mappa: altre creste nella foschia, non il vuoto
+scene.add(buildSkirt(T));
 scene.add(terrainMesh);
 scene.add(buildTrails(T, data));
 scene.add(buildLakes(T));
@@ -63,6 +67,18 @@ const sky = new Sky(scene);
 // chi sei: nome e colore della giacca (ricordati nel browser)
 const me = loadMe();
 const hiker = new Hiker({ jacket: me.jacket });
+hiker.worldMargin = 20; // un po' prima del bordo: oltre, il terreno non c'è più
+let edgeTold = false;
+// case, rifugi, bivacchi, campanili e tronchi: non si attraversano (né a piedi né con la telecamera)
+const obstacles = new Obstacles();
+for (const s of [...places.solids, ...trees.solids]) obstacles.add(s);
+hiker.collide = (x, z, y) => {
+  if (!hiker.root.visible || play.indoors) return { x, z, stuck: false };
+  const r = obstacles.push(x, z, y, 0.35);
+  // se eri già incastrata (un salto, un viaggio veloce), meglio uscire comunque che restare ferma
+  if (r.stuck && obstacles.hits(hiker.root.position.x, hiker.root.position.z, y, 0.35)) r.stuck = false;
+  return r;
+};
 scene.add(hiker.root);
 
 // la frontale: si accende da sola quando fa buio (sempre nella scena, cambia solo l'intensità: niente ricompilazioni)
@@ -113,27 +129,35 @@ const camTarget = new THREE.Vector3();
 const camPos = new THREE.Vector3();
 
 // ---------- comandi ----------
-const keys = new Set<string>();
-addEventListener("keydown", (e) => {
-  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
-  const k = e.key.toLowerCase();
-  keys.add(k);
-  if (!started || e.repeat) return;
-  // nel mirino: si guarda, si zooma, si scatta, si esce (il resto dei comandi aspetta)
-  if (finder) {
+const keys = held;
+// nel mirino: si guarda, si zooma, si scatta, si esce (il resto dei comandi aspetta)
+addLayer({
+  name: "mirino", priority: 40, modal: true,
+  active: () => started && !!finder,
+  key: (k, e) => {
+    if (e.repeat) return;
     if (k === "escape") exitFinder();
     else if (k === "p" || k === " " || k === "enter") shoot();
     else if (k === "+" || k === "=") zoomBy(1.4);
     else if (k === "-") zoomBy(1 / 1.4);
-    return;
-  }
-  if (k === "e" && !ui.busy) ui.triggerAct();
-  if (k === "escape" && !e.defaultPrevented && !ui.busy && !document.querySelector(".mini.on")) openPauseMenu();
-  if (k === "f" && play.climb?.active) play.climb.setShake(true);
-  if (k === " ") jumpOrGlide();
-  if (k === "p" && !play.blocked()) enterFinder();
-  if (k === "g" && !play.blocked()) say("👋 Ciao!");
-  if (k === "t" && !play.blocked()) void quickChat();
+  },
+});
+// in giro per la valle (o in parete)
+addLayer({
+  name: "mondo", priority: 0,
+  active: () => started,
+  key: (k, e) => {
+    if (e.repeat) return;
+    if (!ui.busy && document.body.classList.contains("playing") && play.phone.shortcut(k, e)) return;
+    if (k === "e" && !ui.busy) ui.triggerAct();
+    if (k === "escape" && !ui.busy) openPauseMenu();
+    if (k === "f" && play.climb?.active) play.climb.setShake(true);
+    if (k === " ") jumpOrGlide();
+    if (k === "p" && !play.blocked()) enterFinder();
+    if (k === "b" && !play.blocked()) play.drink();
+    if (k === "g" && !play.blocked()) say("👋 Ciao!");
+    if (k === "t" && !play.blocked()) void quickChat();
+  },
 });
 
 const PHRASES = ALL_PHRASES.filter((p) => p !== "👋 Ciao!");
@@ -147,11 +171,7 @@ function say(text: string) {
   ui.toast(`<b>Tu</b>: ${text}`);
   sound.ui("blip");
 }
-addEventListener("keyup", (e) => {
-  keys.delete(e.key.toLowerCase());
-  if (e.key.toLowerCase() === "f") play.climb?.setShake(false);
-});
-addEventListener("blur", () => keys.clear());
+onKeyUp((k) => k === "f" && play.climb?.setShake(false));
 
 const el = renderer.domElement;
 el.addEventListener("contextmenu", (e) => e.preventDefault()); // in parete anche il tasto destro prende la presa
@@ -424,7 +444,7 @@ function snapshot() {
 // prove automatiche: ?debug espone un teletrasporto e lo stato del gioco
 if (q.has("debug"))
   Object.assign(window, {
-    __mv: { ...play.debug, busy: () => ui.busy, started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
+    __mv: { ...play.debug, obstacles, weather: play.weather, sound, busy: () => ui.busy, layer: () => topLayer(), started: () => started, camera, scene, get climb() { return play.climb; }, quality: () => ({ level: quality.level, counts: [play.life.flowers.count, play.life.boulders.count] }), yaw: () => yaw, setYaw: (v: number) => (yaw = v), tp: (x: number, z: number) => hiker.root.position.set(x, T.heightAt(x, z), z), me: hiker.root.position, setHours: (h: number) => (hours = h), finder: () => finder },
   });
 
 // le ombre delle montagne, lette da tutti i materiali (anche persone e animali appena aggiunti)
@@ -463,12 +483,7 @@ function openPauseMenu() {
       }
     },
     onReset: () => {
-      try {
-        localStorage.removeItem("montagna-viva:v1");
-        localStorage.removeItem("montagna-viva:album");
-      } catch {
-        /* niente */
-      }
+      wipeProgress(); // progressi, album e taccuino (prima il taccuino restava)
       location.reload();
     },
   });
@@ -615,6 +630,14 @@ function frame() {
       const hit = rock.cast(camTarget.clone(), dir.normalize());
       if (hit && hit.point.distanceTo(camTarget) < len) camPos.copy(hit.point).addScaledVector(dir, -0.6);
     }
+    // né nelle case: se un muro o un tetto è in mezzo, la telecamera si avvicina (davanti al muro)
+    if (!play.indoors) {
+      const dir = camPos.clone().sub(camTarget);
+      const len = dir.length();
+      dir.normalize();
+      const hitD = obstacles.cast(camTarget, dir, len);
+      if (hitD !== null) camPos.copy(camTarget).addScaledVector(dir, Math.max(0.5, hitD - 0.6));
+    }
   }
   if (cinema) {
     camPos.copy(cinema.pos);
@@ -623,6 +646,14 @@ function frame() {
   // dopo un'inquadratura la telecamera torna piano dietro di te
   if (!cinema) camK = Math.min(14, camK + dt * 5);
   camera.position.lerp(camPos, 1 - Math.exp(-camK * dt));
+  // anche mentre la telecamera scivola verso il suo posto: il tragitto dritto può tagliare un muro
+  if (!play.indoors && !cinema && !play.climb?.active) {
+    const dir = camera.position.clone().sub(camTarget);
+    const len = dir.length();
+    dir.normalize();
+    const hitD = obstacles.cast(camTarget, dir, len);
+    if (hitD !== null) camera.position.copy(camTarget).addScaledVector(dir, Math.max(0.5, hitD - 0.6));
+  }
   lookAt.lerp(camTarget, 1 - Math.exp(-Math.max(camK, 3) * dt));
   camera.lookAt(lookAt);
   if (finder) {
@@ -646,8 +677,16 @@ function frame() {
   sky.update(hours, p, fog, play.weather.storm, play.weather.flash);
   waterUniforms.uTime.value = now;
   waterUniforms.uSky.value.copy(sky.horizon);
-  fog.near = 900 * (1 - 0.7 * play.weather.storm);
-  fog.far = 5200 * (1 - 0.6 * play.weather.storm);
+  // verso il bordo della mappa sale la foschia: le creste inventate oltre il confine restano lontane e sfumate
+  const edgeK = 1 - THREE.MathUtils.smoothstep(edgeDistance(T, p.x, p.z), 120, 900);
+  fog.near = 900 * (1 - 0.7 * play.weather.storm) * (1 - 0.55 * edgeK);
+  fog.far = 5200 * (1 - 0.6 * play.weather.storm) * (1 - 0.6 * edgeK);
+  // al confine: si spiega perché non si va oltre (una volta ogni volta che ci arrivi)
+  const atEdge = edgeDistance(T, p.x, p.z) < 45;
+  if (atEdge && !edgeTold && started) {
+    edgeTold = true;
+    ui.toast("<b>Oltre queste creste continua la Valtellina.</b> Nel gioco, per ora, la valle finisce qui: torna verso i rifugi.");
+  } else if (!atEdge && edgeDistance(T, p.x, p.z) > 120) edgeTold = false;
   sunMap.update(sky.lightDir);
   lamp.intensity = play.hasLamp() ? THREE.MathUtils.smoothstep(sky.night, 0.15, 0.6) * 260 : 0;
   play.update(dt);
@@ -719,9 +758,12 @@ net.onMode = (mode, n) => {
   pill.textContent = mode === "server" ? (n ? `👥 ${n + 1} nella valle` : "👥 solo tu, per ora") : mode === "local" ? (n ? `👥 ${n + 1} (questo browser)` : "👤 gioco da sola") : "";
 };
 startBtn.addEventListener("click", () => {
+  if (loadProblem) setTimeout(() => ui.toast("<b>Il salvataggio era rovinato</b> Ricominci da capo; una copia di riserva resta nel browser.", "warn"), 1500);
   saveMe(me);
   net.connect();
   started = true;
+  // se c'era qualcosa in corso: bentornata, ecco dov'eri rimasta (dopo un attimo, a gioco partito)
+  setTimeout(() => void play.welcomeBack(), 900);
   sound.start();
   document.body.classList.add("playing");
   intro.classList.add("gone");

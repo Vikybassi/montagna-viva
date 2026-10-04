@@ -1,20 +1,33 @@
 /**
- * I suoni della valle, tutti generati nel browser (Web Audio, nessun file): vento che cresce con la quota e in volo,
- * torrenti vicini, uccelli nel bosco di giorno, grilli di notte, passi su erba e roccia, campanacci, il fischio delle
- * marmotte, l'aquila, pioggia e tuoni; e piccoli suoni per timbri, diario e missioni.
+ * I suoni della valle: registrazioni vere (public/audio, fonti e licenze in public/audio/CREDITI.md) per vento,
+ * torrenti, uccelli, grilli, pioggia e tuoni, campanacci, marmotte, aquila, gracchi, elicottero, tuffi e passi.
+ * Gli ambienti sono anelli che salgono e scendono col mondo intorno a te; versi e colpi arrivano dal punto giusto
+ * (a destra o a sinistra, più piano se lontani). Restano sintetizzati solo i piccoli suoni dell'interfaccia, lo
+ * squillo del telefono e il fruscio del parapendio.
+ * Finché le registrazioni non sono caricate (pochi secondi) si sente solo l'interfaccia.
  * Parte solo dopo un clic (regola dei browser) e si può spegnere.
  */
 type Env = { alt: number; night: number; forest: number; water: number; speed: number; gliding: boolean; rain: number; meadow: number };
+type Bed = { g: GainNode; src: AudioBufferSourceNode };
+
+const BEDS = ["vento", "torrente", "ruscello", "uccelli", "grilli", "pioggia", "elicottero"] as const;
+const SHOTS = {
+  aquila: 1, gracchio: 1, marmotta: 2, tuono: 4, tuffo: 3,
+  "passo-erba": 5, "passo-roccia": 5, "passo-neve": 5,
+} as const;
+type ShotName = keyof typeof SHOTS;
 
 export class Sound {
   private ctx: AudioContext | null = null;
   private master!: GainNode;
   private noise!: AudioBuffer;
-  private wind!: { g: GainNode; f: BiquadFilterNode };
-  private river!: { g: GainNode };
-  private rainBed!: { g: GainNode };
-  private nextBird = 0;
-  private nextCricket = 0;
+  private buffers = new Map<string, AudioBuffer>();
+  /** dove inizia il suono vero in ogni registrazione (i bordi di silenzio aggiunti dalla compressione si saltano) */
+  private starts = new Map<string, number>();
+  private beds = new Map<string, Bed>();
+  private heliPan: StereoPannerNode | null = null;
+  private heliSeen = -1;
+  private nextChough = 0;
   muted = false;
   private yaw = 0;
   private me = { x: 0, z: 0 };
@@ -28,27 +41,58 @@ export class Sound {
     this.master = c.createGain();
     this.master.gain.value = this.muted ? 0 : this.volume;
     this.master.connect(comp).connect(c.destination);
-    // rumore bianco riusato da tutti
+    // rumore bianco: serve ancora al fruscio del parapendio e al timbro
     this.noise = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
     const d = this.noise.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const bed = (type: BiquadFilterType, freq: number, q: number) => {
+    void this.load();
+  }
+
+  /** scarica e decodifica le registrazioni; gli ambienti partono subito, a volume zero */
+  private async load() {
+    const c = this.ctx!;
+    const names = [...BEDS, "campanacci", ...Object.entries(SHOTS).flatMap(([k, n]) => (n === 1 ? [k] : Array.from({ length: n }, (_, i) => `${k}-${k.startsWith("passo") ? i : i + 1}`)))];
+    // AAC (.m4a) dove il browser lo legge (preciso: gli anelli tornano a capo senza scatti); altrimenti Opus (.webm), per
+    // i browser senza AAC (es. Chromium su Linux)
+    const ext = new Audio().canPlayType('audio/mp4; codecs="mp4a.40.2"') ? "m4a" : "webm";
+    await Promise.all(
+      names.map(async (n) => {
+        for (const e of [ext, ext === "webm" ? "m4a" : "webm"]) {
+          try {
+            const res = await fetch(`${import.meta.env.BASE_URL}audio/${n}.${e}`);
+            const b = await c.decodeAudioData(await res.arrayBuffer());
+            this.buffers.set(n, b);
+            this.starts.set(n, trim(b)[0]);
+            return;
+          } catch {
+            /* si prova l'altro formato; un suono che manca non ferma il gioco */
+          }
+        }
+      }),
+    );
+    for (const n of BEDS) {
+      const b = this.buffers.get(n);
+      if (!b) continue;
       const src = c.createBufferSource();
-      src.buffer = this.noise;
+      src.buffer = b;
       src.loop = true;
-      const f = c.createBiquadFilter();
-      f.type = type;
-      f.frequency.value = freq;
-      f.Q.value = q;
+      // l'AAC aggiunge un attimo di silenzio all'inizio e alla fine: l'anello salta quei pezzi
+      const [a, z] = trim(b);
+      src.loopStart = a;
+      src.loopEnd = z;
       const g = c.createGain();
       g.gain.value = 0;
-      src.connect(f).connect(g).connect(this.master);
-      src.start();
-      return { g, f };
-    };
-    this.wind = bed("bandpass", 500, 0.6);
-    this.river = bed("bandpass", 1300, 0.4);
-    this.rainBed = bed("highpass", 2500, 0.3);
+      let out: AudioNode = this.master;
+      if (n === "elicottero") {
+        this.heliPan = c.createStereoPanner();
+        this.heliPan.connect(this.master);
+        out = this.heliPan;
+      }
+      src.connect(g).connect(out);
+      // ogni anello parte da un punto diverso: non si sentono ripartire tutti insieme
+      src.start(0, a + Math.random() * (z - a));
+      this.beds.set(n, { g, src });
+    }
   }
 
   private volume = 0.9;
@@ -62,6 +106,10 @@ export class Sound {
     if (this.ctx && !this.muted) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1);
   }
 
+  private level(name: string, v: number, now: number, tc = 0.5) {
+    this.beds.get(name)?.g.gain.setTargetAtTime(v, now, tc);
+  }
+
   /** da chiamare a ogni fotogramma con lo stato del mondo intorno a te */
   update(e: Env, me: { x: number; z: number }, yaw: number) {
     const c = this.ctx;
@@ -69,24 +117,29 @@ export class Sound {
     this.me = me;
     this.yaw = yaw;
     const now = c.currentTime;
-    // vento: più forte in alto e in volo, con raffiche
-    const gust = 0.6 + 0.4 * Math.sin(now * 0.37) * Math.sin(now * 0.13 + 1);
-    const windLevel = (0.015 + Math.min(1, Math.max(0, (e.alt - 1200) / 1800)) * 0.09) * gust + (e.gliding ? 0.12 : 0) + e.rain * 0.05;
-    this.wind.g.gain.setTargetAtTime(windLevel, now, 0.3);
-    this.wind.f.frequency.setTargetAtTime(380 + gust * 260 + (e.gliding ? 300 : 0), now, 0.3);
-    // torrente: più forte quanto più è vicino
-    this.river.g.gain.setTargetAtTime(Math.max(0, 1 - e.water / 70) * 0.11, now, 0.4);
-    this.rainBed.g.gain.setTargetAtTime(e.rain * 0.09, now, 0.8);
-    // uccelli di giorno nel bosco (e un po' nei prati)
-    if (now > this.nextBird) {
-      this.nextBird = now + 1.5 + Math.random() * 4;
-      const p = (e.forest * 0.9 + e.meadow * 0.35) * (1 - e.night) * (1 - e.rain);
-      if (Math.random() < p) this.bird();
+    const high = Math.min(1, Math.max(0, (e.alt - 1200) / 1800));
+    // vento: un filo in basso, forte in quota e in volo, con raffiche lente
+    const gust = 0.7 + 0.3 * Math.sin(now * 0.37) * Math.sin(now * 0.13 + 1);
+    this.level("vento", Math.min(0.9, (0.08 + high * 0.5) * gust + (e.gliding ? 0.35 : 0) + e.rain * 0.15), now, 0.4);
+    const wind = this.beds.get("vento");
+    if (wind) wind.src.playbackRate.setTargetAtTime(0.9 + gust * 0.15 + (e.gliding ? 0.15 : 0), now, 0.5);
+    // acqua: il torrente vicino, il ruscello un po' più in là
+    const close = Math.max(0, 1 - e.water / 70);
+    this.level("torrente", close ** 2 * 0.75, now, 0.6);
+    this.level("ruscello", close * (1 - close) * 1.2 * 0.5, now, 0.6);
+    // uccelli di giorno nel bosco (e un po' nei prati); grilli di notte, in basso
+    this.level("uccelli", (e.forest * 0.9 + e.meadow * 0.35) * (1 - e.night) * (1 - e.rain) * (1 - high * 0.7) * 0.5, now, 1.5);
+    this.level("grilli", e.night > 0.5 && e.alt < 2000 ? (e.night - 0.5) * 2 * 0.35 * (1 - e.rain) : 0, now, 2);
+    this.level("pioggia", e.rain * 0.85, now, 1);
+    // i gracchi, di giorno sopra i 2000 m: ogni tanto, da una parte o dall'altra
+    if (now > this.nextChough) {
+      this.nextChough = now + 12 + Math.random() * 25;
+      if (e.alt > 2000 && e.night < 0.5 && e.rain < 0.3) this.shot("gracchio", me.x + (Math.random() - 0.5) * 120, me.z + (Math.random() - 0.5) * 120, 0.35, 200);
     }
-    // grilli di notte nei prati bassi
-    if (now > this.nextCricket) {
-      this.nextCricket = now + 0.35 + Math.random() * 0.4;
-      if (e.night > 0.5 && e.alt < 2000 && Math.random() < 0.8) this.cricket();
+    // l'elicottero tace se non lo si sente più da un po'
+    if (this.heliSeen >= 0 && now - this.heliSeen > 0.6) {
+      this.level("elicottero", 0, now, 0.8);
+      this.heliSeen = -1;
     }
   }
 
@@ -94,17 +147,37 @@ export class Sound {
   private pan(x?: number, z?: number) {
     const c = this.ctx!;
     const p = c.createStereoPanner();
-    if (x !== undefined && z !== undefined) {
-      const a = Math.atan2(x - this.me.x, z - this.me.z) - (this.yaw + Math.PI);
-      p.pan.value = Math.max(-1, Math.min(1, -Math.sin(a)));
-    }
+    p.pan.value = this.panValue(x, z);
     p.connect(this.master);
     return p;
+  }
+  private panValue(x?: number, z?: number) {
+    if (x === undefined || z === undefined) return 0;
+    const a = Math.atan2(x - this.me.x, z - this.me.z) - (this.yaw + Math.PI);
+    return Math.max(-1, Math.min(1, -Math.sin(a))) * 0.8;
   }
   private dist(x?: number, z?: number, range = 120) {
     if (x === undefined || z === undefined) return 1;
     const d = Math.hypot(x - this.me.x, z - this.me.z);
     return Math.max(0, 1 - d / range) ** 1.5;
+  }
+  /** una registrazione breve: a caso tra le varianti, dal punto (x, z), con un pizzico di variazione d'intonazione */
+  private shot(name: ShotName, x?: number, z?: number, vol = 1, range = 160, delay = 0, rate = 1) {
+    const c = this.ctx;
+    if (!c) return;
+    const n = SHOTS[name];
+    const key = n === 1 ? name : `${name}-${name.startsWith("passo") ? Math.floor(Math.random() * n) : 1 + Math.floor(Math.random() * n)}`;
+    const b = this.buffers.get(key);
+    if (!b) return;
+    const v = vol * (x === undefined ? 1 : this.dist(x, z, range));
+    if (v < 0.005) return;
+    const s = c.createBufferSource();
+    s.buffer = b;
+    s.playbackRate.value = rate * (0.94 + Math.random() * 0.12);
+    const g = c.createGain();
+    g.gain.value = v;
+    s.connect(g).connect(this.pan(x, z));
+    s.start(c.currentTime + delay, this.starts.get(key) ?? 0);
   }
   private tone(type: OscillatorType, f0: number, f1: number, t: number, dur: number, vol: number, out: AudioNode) {
     const c = this.ctx!;
@@ -137,68 +210,39 @@ export class Sound {
   }
 
   // ---------- suoni ----------
-  bird() {
-    const c = this.ctx!;
-    const out = this.pan(this.me.x + (Math.random() - 0.5) * 80, this.me.z + (Math.random() - 0.5) * 80);
-    let t = c.currentTime + 0.05;
-    const n = 2 + Math.floor(Math.random() * 5), base = 2600 + Math.random() * 2400;
-    for (let i = 0; i < n; i++) {
-      this.tone("sine", base * (0.9 + Math.random() * 0.3), base * (1.1 + Math.random() * 0.4), t, 0.07 + Math.random() * 0.06, 0.035, out);
-      t += 0.1 + Math.random() * 0.08;
-    }
+  step(surface: "grass" | "rock" | "snow" | "water") {
+    if (surface === "water") return this.shot("tuffo", undefined, undefined, 0.12, 1, 0, 1.4);
+    this.shot(surface === "grass" ? "passo-erba" : surface === "snow" ? "passo-neve" : "passo-roccia", undefined, undefined, surface === "rock" ? 0.22 : 0.16);
   }
-  cricket() {
-    const c = this.ctx!;
-    const out = this.pan(this.me.x + (Math.random() - 0.5) * 40, this.me.z + (Math.random() - 0.5) * 40);
-    const t = c.currentTime;
-    for (let i = 0; i < 3; i++) this.tone("sine", 4400, 4300, t + i * 0.045, 0.03, 0.012, out);
-  }
-  step(surface: "grass" | "rock" | "water") {
-    const c = this.ctx;
-    if (!c) return;
-    const out = this.pan();
-    if (surface === "water") this.burst(c.currentTime, 0.25, 0.06, "bandpass", 900, out, 0.7);
-    else if (surface === "grass") this.burst(c.currentTime, 0.09, 0.05, "lowpass", 900, out);
-    else this.burst(c.currentTime, 0.06, 0.07, "bandpass", 2400, out, 2);
-  }
+  /** una mucca col campanaccio: un pezzetto diverso della registrazione per ognuna, dal punto in cui è */
   cowbell(x: number, z: number) {
-    const c = this.ctx;
-    if (!c) return;
+    const c = this.ctx, b = this.buffers.get("campanacci");
+    if (!c || !b) return;
     const v = this.dist(x, z, 160);
     if (v < 0.01) return;
-    const out = this.pan(x, z);
-    const f0 = 520 + Math.random() * 120, t = c.currentTime;
-    [1, 2.76, 5.4, 8.9].forEach((m, i) => this.tone("sine", f0 * m, f0 * m * 0.995, t, 0.9 - i * 0.18, (0.05 / (i + 1)) * v, out));
+    const s = c.createBufferSource();
+    s.buffer = b;
+    s.playbackRate.value = 0.92 + Math.random() * 0.16;
+    const g = c.createGain(), t = c.currentTime, dur = 1.6 + Math.random() * 1.4;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.9 * v, t + 0.15);
+    g.gain.setValueAtTime(0.9 * v, t + dur - 0.5);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(g).connect(this.pan(x, z));
+    s.start(t, Math.random() * (b.duration - dur - 0.5), dur + 0.05);
   }
   whistle(x: number, z: number) {
-    const c = this.ctx;
-    if (!c) return;
-    const out = this.pan(x, z), t = c.currentTime, v = Math.max(0.3, this.dist(x, z, 200));
-    this.tone("sine", 3300, 2500, t, 0.45, 0.09 * v, out);
+    this.shot("marmotta", x, z, Math.max(0.3, this.dist(x, z, 200)) * 0.8);
   }
   eagle(x: number, z: number) {
-    const c = this.ctx;
-    if (!c) return;
-    const out = this.pan(x, z), t = c.currentTime, v = Math.max(0.25, this.dist(x, z, 300));
-    const f = c.createBiquadFilter();
-    f.type = "bandpass";
-    f.frequency.value = 1800;
-    f.connect(out);
-    this.tone("sawtooth", 1900, 1300, t, 0.6, 0.05 * v, f);
-    this.tone("sawtooth", 1700, 1250, t + 0.7, 0.5, 0.04 * v, f);
+    this.shot("aquila", x, z, Math.max(0.25, this.dist(x, z, 300)) * 0.6);
   }
   thunder() {
-    const c = this.ctx;
-    if (!c) return;
-    const t = c.currentTime + 0.3 + Math.random();
-    this.burst(t, 2.8, 0.5, "lowpass", 160, this.pan(), 0.5);
-    this.burst(t + 0.15, 1.2, 0.25, "lowpass", 400, this.pan());
+    // il tuono arriva dopo il lampo: tanto più tardi quanto più è lontano
+    this.shot("tuono", undefined, undefined, 0.7 + Math.random() * 0.3, 1, 0.3 + Math.random() * 1.2, 0.9 + Math.random() * 0.15);
   }
   splash(x?: number, z?: number, small = false) {
-    const c = this.ctx;
-    if (!c) return;
-    const out = this.pan(x, z);
-    this.burst(c.currentTime, small ? 0.12 : 0.35, small ? 0.08 : 0.16, "bandpass", small ? 2200 : 1400, out, 0.8);
+    this.shot("tuffo", x, z, small ? 0.3 : 0.6, 80, 0, small ? 1.3 : 1);
   }
   whoosh() {
     const c = this.ctx;
@@ -218,13 +262,21 @@ export class Sound {
     s.start(t);
     s.stop(t + 0.9);
   }
-  /** l'elicottero: colpi bassi delle pale, più forti da vicino */
+  /** l'elicottero: più forte da vicino, dalla sua parte (lo si chiama finché si sente) */
   rotor(x: number, z: number, d: number) {
     const c = this.ctx;
     if (!c) return;
     const v = Math.max(0, 1 - d / 900) ** 1.6;
-    if (v < 0.01) return;
-    this.burst(c.currentTime, 0.07, 0.22 * v, "lowpass", 160, this.pan(x, z), 0.8);
+    this.level("elicottero", v * 0.9, c.currentTime, 0.3);
+    this.heliPan?.pan.setTargetAtTime(this.panValue(x, z), c.currentTime, 0.2);
+    this.heliSeen = c.currentTime;
+  }
+  /** un sorso: due "glu" bassi */
+  gulp() {
+    const c = this.ctx;
+    if (!c) return;
+    const out = this.pan(), t = c.currentTime + 0.35;
+    for (let i = 0; i < 2; i++) this.tone("sine", 260, 140, t + i * 0.28, 0.12, 0.12, out);
   }
   /** la suoneria del telefono: due note alternate, come un vecchio squillo */
   ring() {
@@ -250,6 +302,15 @@ export class Sound {
     if (kind === "stamp") return void this.burst(t, 0.15, 0.4, "lowpass", 300, out);
     notes[kind].forEach((f, i) => this.tone("triangle", f, f, t + i * 0.09, 0.35, 0.09, out));
   }
+}
+
+/** dove inizia e finisce il suono vero in un buffer (senza il silenzio che l'AAC aggiunge ai bordi), in secondi */
+export function trim(b: AudioBuffer) {
+  const d = b.getChannelData(0);
+  let a = 0, z = d.length - 1;
+  while (a < z && Math.abs(d[a]) < 1e-4) a++;
+  while (z > a && Math.abs(d[z]) < 1e-4) z--;
+  return [a / b.sampleRate, (z + 1) / b.sampleRate] as const;
 }
 
 export const sound = new Sound();

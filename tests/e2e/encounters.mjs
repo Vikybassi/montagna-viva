@@ -1,5 +1,5 @@
 // Incontri: il cappello di Tommaso e il consiglio a Giorgia; la commissione accettata diventa l'obiettivo
-import { check, openGame, text, wait } from "./lib.mjs";
+import { check, openGame, text, until, wait } from "./lib.mjs";
 
 const hut = (page, n) => page.evaluate((n) => { const h = window.__mv.data.huts.find((x) => x.name.includes(n)); return [h.p[0] * 0.3, h.p[1] * 0.3]; }, n);
 const prompt = (page) => text(page, ".act.on");
@@ -40,6 +40,20 @@ export default async function encounters(browser) {
   await page.keyboard.press("Enter");
   await wait(500);
   check(await page.evaluate(() => window.__mv.state.encounters.includes("giorgia")), "Giorgia ha avuto il consiglio giusto");
+  // Rosa: accettato il pane, si può ancora parlarle (prima diventava muta) e ti ricorda dove portarlo
+  await page.evaluate(() => {
+    const it = window.__mv.interacts.find((i) => (i.text() ?? "").includes("Rosa"));
+    window.__mv.tp(it.pos.x + 2, it.pos.z + 2);
+  });
+  check(await until(page, () => (document.querySelector(".act.on")?.textContent ?? "").includes("Rosa")), "vicino a Rosa si può parlarle");
+  await page.keyboard.press("e");
+  await until(page, () => window.__mv.layer() === "dialogo");
+  await page.keyboard.press("1"); // sì, lo porto io
+  check(await until(page, () => window.__mv.state.carrying === "pane" && window.__mv.layer() === "mondo"), "il pane è nello zaino");
+  check(await until(page, () => (document.querySelector(".act.on")?.textContent ?? "").includes("Rosa")), "col pane nello zaino Rosa risponde ancora");
+  await page.keyboard.press("e");
+  check(await until(page, () => (document.querySelector(".dlg.on, .dialog.on")?.textContent ?? "").includes("Giulio")), "Rosa ricorda di portare il pane a Giulio");
+  await page.keyboard.press("Enter");
   check(errors.length === 0, `errori nella pagina: ${errors.join(" | ")}`);
   await page.close();
 }

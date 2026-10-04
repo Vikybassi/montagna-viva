@@ -165,6 +165,22 @@ export class Hiker {
 
   /** "pavimento" in più oltre al terreno (il Sasso Remenno: ci si cammina sopra e non lo si attraversa) */
   groundFn: ((x: number, z: number) => number | null) | null = null;
+  /** sta bevendo (secondi che restano): la mano porta la borraccia alla bocca */
+  private drinking = 0;
+  private bottle: THREE.Mesh | null = null;
+  drink() {
+    this.drinking = 1.3;
+    if (!this.bottle) {
+      this.bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.2, 8), new THREE.MeshStandardMaterial({ color: "#3b8fb0", roughness: 0.4, metalness: 0.3 }));
+      this.bottle.position.set(0, -0.44, 0.07);
+      this.armR.add(this.bottle);
+    }
+    this.bottle.visible = true;
+  }
+  /** quanto vicino al bordo della mappa si può arrivare (unità di gioco) */
+  worldMargin = 4;
+  /** gli ostacoli solidi (case, tronchi): riceve dove vorresti andare e restituisce dove puoi stare */
+  collide: ((x: number, z: number, y: number) => { x: number; z: number; stuck: boolean }) | null = null;
   groundAt(t: Terrain, x: number, z: number) {
     const g = t.heightAt(x, z), o = this.groundFn?.(x, z) ?? null;
     return o !== null && o > g ? o : g;
@@ -177,7 +193,7 @@ export class Hiker {
   private vy = 0;
   private wing: THREE.Group;
   /** chiamata a ogni passo (per il suono): superficie sotto i piedi */
-  onStep: ((surface: "grass" | "rock" | "water") => void) | null = null;
+  onStep: ((surface: "grass" | "rock" | "snow" | "water") => void) | null = null;
   /** in acqua, in un lago: si nuota (piano, senza correre) */
   swimming = false;
   onLand: (() => void) | null = null;
@@ -265,9 +281,15 @@ export class Hiker {
         this.heading += d * (1 - Math.exp(-12 * dt));
       } else if (!this.airborne) this.velocity.multiplyScalar(Math.exp(-12 * dt));
     }
-    const nx = p.x + this.velocity.x * dt, nz = p.z + this.velocity.y * dt;
+    let nx = p.x + this.velocity.x * dt, nz = p.z + this.velocity.y * dt;
+    // case e tronchi: non si attraversano, si scivola lungo il muro
+    if (this.collide) {
+      const c = this.collide(nx, nz, p.y);
+      if (c.stuck) (nx = p.x), (nz = p.z);
+      else (nx = c.x), (nz = c.z);
+    }
     const wall = this.groundAt(t, nx, nz) - p.y > 1.2 && !this.airborne; // una parete davanti (es. il masso): non si entra
-    if (t.inside(nx, nz, 4) && !wall) {
+    if (t.inside(nx, nz, this.worldMargin) && !wall) {
       p.x = nx;
       p.z = nz;
     }
@@ -327,10 +349,26 @@ export class Hiker {
       limb.quaternion.setFromUnitVectors(DOWN, d.divideScalar(Math.max(L, 1e-4)));
       limb.scale.set(1, THREE.MathUtils.clamp(L / len, 0.55, 1.5), 1);
     };
-    aim(this.armL, handL, 0.57);
-    aim(this.armR, handR, 0.57);
-    aim(this.legL, footL, 0.8);
-    aim(this.legR, footR, 0.8);
+    // ogni mano e ogni piede all'arto dal suo lato, misurato sul corpo vero (spalla a spalla, anca ad anca): così
+    // braccia e gambe non si incrociano mai, comunque sia girato il modello
+    const pair = (l: THREE.Object3D, r: THREE.Object3D, a: THREE.Vector3 | null, b: THREE.Vector3 | null, len: number) => {
+      const pl = l.getWorldPosition(new THREE.Vector3()), pr = r.getWorldPosition(new THREE.Vector3());
+      const axis = pr.clone().sub(pl);
+      const side = (v: THREE.Vector3) => v.clone().sub(pl).dot(axis);
+      let [tl, tr] = [a, b];
+      if (a && b) {
+        if (side(a) > side(b)) [tl, tr] = [b, a];
+      } else if (a || b) {
+        const t = (a ?? b)!;
+        const nearL = t.distanceToSquared(pl) <= t.distanceToSquared(pr);
+        [tl, tr] = nearL ? [t, null] : [null, t];
+      }
+      aim(l, tl, len);
+      aim(r, tr, len);
+      return tl === null && tr !== null ? 0 : tr === null && tl !== null ? 1 : -1;
+    };
+    this.freeArm = pair(this.armL, this.armR, handL, handR, 0.57) as 0 | 1 | -1;
+    pair(this.legL, this.legR, footL, footR, 0.8);
   }
 
   /** casco e imbrago al posto di zaino, cappello e bastoncini (e viceversa) */
@@ -386,6 +424,8 @@ export class Hiker {
   }
 
   /** in parete: un braccio penzola e si scuote (per far riposare i muscoli), l'altro tiene la presa */
+  /** in parete: il braccio del modello rimasto senza presa (0 = armL, 1 = armR), -1 se tengono tutte e due */
+  freeArm: 0 | 1 | -1 = -1;
   shakeArm(hand: 0 | 1, time: number) {
     const a = hand === 0 ? this.armL : this.armR;
     a.scale.set(1, 1, 1);
@@ -399,7 +439,7 @@ export class Hiker {
     const before = Math.sin(this.phase);
     this.phase += dt * (3 + this.speed * 0.95);
     if (t && !this.airborne && this.speed > 1.5 && Math.sign(Math.sin(this.phase)) !== Math.sign(before))
-      this.onStep?.(this.swimming ? "water" : t.slopeAt(p.x, p.z) > 30 || p.y / 0.3 > 2400 ? "rock" : "grass");
+      this.onStep?.(this.swimming ? "water" : p.y / 0.3 > 2950 ? "snow" : t.slopeAt(p.x, p.z) > 30 || p.y / 0.3 > 2400 ? "rock" : "grass");
     const sw = Math.sin(this.phase) * 0.75 * amt;
     this.resetLimbs();
     this.legL.rotation.z = this.legR.rotation.z = 0;
@@ -413,5 +453,13 @@ export class Hiker {
     this.armR.rotation.z = this.swimming ? stroke * 0.6 : 0;
     this.body.position.y = Math.abs(Math.cos(this.phase)) * 0.06 * amt;
     this.body.rotation.x = amt * (this.speed > 10 ? 0.2 : 0.06);
+    // un sorso: il braccio sale, la borraccia alla bocca, poi giù
+    if (this.drinking > 0) {
+      this.drinking -= dt;
+      const k = Math.min(1, Math.min(1.3 - this.drinking, this.drinking) / 0.3);
+      this.armR.rotation.x = THREE.MathUtils.lerp(this.armR.rotation.x, -2.05, k);
+      this.armR.rotation.z = THREE.MathUtils.lerp(0, -0.55, k); // verso il centro: la mano alla bocca
+      if (this.drinking <= 0 && this.bottle) this.bottle.visible = false;
+    }
   }
 }

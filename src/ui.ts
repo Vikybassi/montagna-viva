@@ -1,7 +1,9 @@
 import { sound } from "./audio";
 import { FACTS, ITEMS, PACK_SLOTS, SUMMITS, type Fact, type Topic } from "./content";
 import { SUBJECTS, SUBJECT_IDS } from "./nature";
-import { album, notebook, state } from "./state";
+import { addLayer } from "./input";
+import { SOUND_CREDITS } from "./sound-credits";
+import { ALBUM_MAX, album, exportSave, importSave, notebook, state } from "./state";
 
 /**
  * L'interfaccia sopra il gioco: dialoghi con le persone, avvisi, obiettivo con freccia, fiato e cronometro, e i contenuti
@@ -37,9 +39,10 @@ export function pointGoal(angle: number | null, meters: number | null) {
 }
 
 // ---------- novità per il telefono (il puntino rosso) ----------
-export type PhoneTab = "missioni" | "mappa" | "diario" | "zaino" | "spille" | "armadio";
+export type PhoneTab = "missioni" | "mappa" | "diario" | "foto" | "zaino" | "spille" | "armadio";
 let newsFn: (tab: PhoneTab) => void = () => {};
 export const onNews = (fn: (tab: PhoneTab) => void) => (newsFn = fn);
+addEventListener("mv:foto", () => newsFn("foto"));
 
 // ---------- la missione in corso: titolo e passi (a schermo resta solo l'obiettivo; i passi sono nel telefono) ----------
 export type QuestStep = { text: string; done: boolean; current: boolean };
@@ -139,13 +142,17 @@ export function say(speaker: string, text: string, options: string[] = ["Continu
     (box.firstElementChild as HTMLButtonElement | null)?.focus();
   });
 }
-addEventListener("keydown", (e) => {
-  if (!pending) return;
-  const n = Number(e.key);
-  const count = dlg.querySelectorAll(".opt").length;
-  // preventDefault: altrimenti lo stesso Invio "clicca" anche il primo pulsante del dialogo che si apre subito dopo
-  if (n >= 1 && n <= count) e.preventDefault(), pending(n - 1);
-  else if ((e.key === "Enter" || e.key === " " || e.key.toLowerCase() === "e") && count === 1) e.preventDefault(), pending(0);
+addLayer({
+  name: "dialogo", priority: 80, modal: true,
+  active: () => !!pending,
+  key: (k, e) => {
+    const n = Number(k);
+    const count = dlg.querySelectorAll(".opt").length;
+    // preventDefault: altrimenti lo stesso Invio "clicca" anche il primo pulsante del dialogo che si apre subito dopo
+    if (n >= 1 && n <= count) e.preventDefault(), pending!(n - 1);
+    else if ((k === "enter" || k === " " || k === "e") && count === 1 && !e.repeat) e.preventDefault(), pending!(0);
+    else if (k === "tab") trapFocus(dlg, e);
+  },
 });
 
 // ---------- pannelli (zaino da preparare, pausa, crediti) ----------
@@ -165,11 +172,13 @@ const closePanel = () => {
   panelOpen = false;
   refreshBusy();
 };
-addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && panelOpen && !packResolve) {
-    closePanel();
-    e.preventDefault(); // così lo stesso Esc non riapre subito la pausa
-  }
+addLayer({
+  name: "pannello", priority: 70, modal: true,
+  active: () => panelOpen,
+  key: (k, e) => {
+    if (k === "escape" && !packResolve) closePanel();
+    else if (k === "tab") trapFocus(panel, e);
+  },
 });
 
 const TOPICS: { id: Topic; name: string }[] = [
@@ -184,14 +193,23 @@ function notebookHtml() {
   const got = SUBJECT_IDS.filter((s) => (state.photos[s] ?? 0) > 0).length;
   return `<h3 class="ph-h">Taccuino del naturalista <small>${got} / ${SUBJECT_IDS.length}</small></h3><p class="ph-note">Premi <kbd>P</kbd> per la fotocamera: i fiori protetti si fotografano, non si raccolgono; gli animali si fotografano da lontano, con lo zoom.</p><ul class="ph-notebook">${SUBJECT_IDS.map((id) => {
     const s = SUBJECTS[id], n = state.photos[id] ?? 0;
-    return `<li class="${n ? "got" : ""}">${nb[id] ? `<img src="${nb[id]}" alt="Foto: ${esc(s.name)}">` : `<span class="ph-nb-empty">${s.kind === "fiore" ? "✿" : "?"}</span>`}<b>${esc(s.name)}</b><small>${n ? `${n} ${n === 1 ? "foto" : "foto"}` : esc(s.where)}</small></li>`;
+    return `<li class="${n ? "got" : ""}">${nb[id] ? `<button type="button" class="ph-photo" aria-label="Ingrandisci: ${esc(s.name)}"><img src="${nb[id]}" alt="Foto: ${esc(s.name)}"></button>` : `<span class="ph-nb-empty">${s.kind === "fiore" ? "✿" : "?"}</span>`}<b>${esc(s.name)}</b><small>${n ? `${n} ${n === 1 ? "foto" : "foto"}` : esc(s.where)}</small></li>`;
   }).join("")}</ul>`;
 }
 
-/** il diario: il taccuino del naturalista, poi quello che hai imparato, per argomento */
+/** le foto: l'album (le ultime scattate) e il taccuino del naturalista; un tocco ingrandisce */
+export function photosHtml() {
+  const photos = album();
+  const shots = photos.length
+    ? `<ul class="ph-album">${photos.map((p) => `<li><button type="button" class="ph-photo" aria-label="Ingrandisci: ${esc(p.place)}, ${p.time}"><img src="${p.img}" alt="Foto da ${esc(p.place)}"></button><span>${esc(p.place)} · ${p.time}</span></li>`).join("")}</ul>`
+    : `<p class="ph-empty">Ancora nessuna foto. Premi <kbd>P</kbd> (o il pulsante con la fotocamera) per guardare nel mirino e scattare: quello che metti al centro finisce qui.</p>`;
+  return `<h2>Foto</h2><p class="ph-sub">${photos.length ? `le ultime ${photos.length}${photos.length >= ALBUM_MAX ? " (le più vecchie lasciano il posto alle nuove)" : ""}` : "l'album è vuoto"}</p><h3 class="ph-h">Album</h3>${shots}${notebookHtml()}`;
+}
+
+/** il diario: quello che hai imparato, per argomento */
 export function diaryHtml() {
   const n = state.diary.length;
-  return `<h2>Diario</h2><p class="ph-sub">${n} scoperte su ${FACTS.length}</p>${notebookHtml()}` + TOPICS.map((t) => {
+  return `<h2>Diario</h2><p class="ph-sub">${n} scoperte su ${FACTS.length}</p>` + TOPICS.map((t) => {
     const all = FACTS.filter((f) => f.topic === t.id);
     const known = all.filter((f) => state.diary.includes(f.id));
     const rest = all.length - known.length;
@@ -200,11 +218,10 @@ export function diaryHtml() {
   }).join("");
 }
 
-/** le spille: collezioni, record e album delle foto */
+/** le spille: collezioni e record */
 export function collectionsHtml() {
   const huts = SUMMITS.length;
   const tile = (big: string, label: string, note = "") => `<li><b>${big}</b><span>${label}</span>${note ? `<p>${note}</p>` : ""}</li>`;
-  const photos = album();
   return `<h3 class="ph-h">Collezioni</h3><ul class="ph-tiles">
     ${tile(String(state.stamps.length), "timbri dei rifugi", state.stamps.map(esc).join(" · ") || "Timbra il libretto ai rifugi.")}
     ${tile(`${state.summits.length}/${huts}`, "libri di vetta", state.summits.map(esc).join(" · ") || "Firma il libro sulle cime.")}
@@ -212,7 +229,7 @@ export function collectionsHtml() {
     ${tile(String(state.skipBest), "rimbalzi, il record")}
     ${tile(state.boulder ? "✓" : "–", "in catena sul Sasso Remenno")}
     ${tile(state.bestRun ? fmtTime(state.bestRun) : "–", "sfida di corsa, il record")}
-  </ul>${photos.length ? `<h3 class="ph-h">Album <small>${photos.length}</small></h3><ul class="ph-album">${photos.map((p) => `<li><img src="${p.img}" alt="Foto da ${esc(p.place)}"><span>${esc(p.place)} · ${p.time}</span></li>`).join("")}</ul>` : ""}`;
+  </ul>`;
 }
 
 /** lo zaino, da guardare (prepararlo si fa con Marta) */
@@ -259,6 +276,11 @@ call.setAttribute("role", "alertdialog");
 root.appendChild(call);
 let answer: (() => void) | null = null, decline: (() => void) | null = null, ringTimer = 0;
 /** il telefono squilla: il gioco si ferma finché rispondi (E o Invio) o rifiuti (Esc) */
+let hangUp: (() => void) | null = null;
+/** chi chiamava riattacca (per esempio: il temporale di cui voleva avvisarti è già passato) */
+export function endCall() {
+  if (callOpen) hangUp?.();
+}
 export function ringCall(speaker: string, onAnswer: () => void, onDecline: () => void) {
   callOpen = true;
   refreshBusy();
@@ -276,17 +298,21 @@ export function ringCall(speaker: string, onAnswer: () => void, onDecline: () =>
   };
   answer = () => (stop(), onAnswer());
   decline = () => (stop(), onDecline());
+  hangUp = stop;
   call.querySelector(".call-yes")!.addEventListener("click", () => answer?.());
   call.querySelector(".call-no")!.addEventListener("click", () => decline?.());
   sound.ring();
   ringTimer = window.setInterval(() => sound.ring(), 1400);
   (call.querySelector(".call-yes") as HTMLButtonElement).focus();
 }
-addEventListener("keydown", (e) => {
-  if (!answer || e.repeat) return;
-  const k = e.key.toLowerCase();
-  if (k === "e" || k === "enter") e.preventDefault(), answer();
-  else if (k === "escape") e.preventDefault(), decline?.();
+addLayer({
+  name: "telefonata", priority: 90, modal: true,
+  active: () => !!answer,
+  key: (k, e) => {
+    if (e.repeat) return;
+    if (k === "e" || k === "enter") e.preventDefault(), answer!();
+    else if (k === "escape") e.preventDefault(), decline?.();
+  },
 });
 
 // ---------- dentro un rifugio o un bivacco (al riparo dal temporale) ----------
@@ -377,13 +403,16 @@ const top = el("div", "topbtns");
 top.innerHTML = `<button type="button" data-k="sound" class="soundbtn" aria-pressed="true" aria-label="Suono">♪</button><button type="button" data-k="pause" aria-label="Pausa e impostazioni">☰</button>`;
 root.appendChild(top);
 const bar = el("div", "tools");
-bar.innerHTML = `<button type="button" data-k="camera" class="camerabtn" aria-label="Fotocamera (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-k="jump" class="touchbtn">Salta / Vola</button><button type="button" data-k="run" class="runbtn" aria-pressed="false">Corri</button><button type="button" data-k="phone" class="miniphone" aria-label="Apri il telefono (Tab)"><span class="mp-screen"><b class="mp-time">14:00</b></span><i class="mp-dot" aria-hidden="true"></i><span class="mp-wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cairn"/></svg><b class="mp-ometti">0</b><span class="sr">ometti</span></span></button>`;
+bar.innerHTML = `<button type="button" data-k="camera" class="camerabtn" aria-label="Fotocamera (P)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" data-k="jump" class="touchbtn">Salta / Vola</button><button type="button" data-k="run" class="runbtn" aria-pressed="false">Corri</button><button type="button" data-k="drink" class="drinkbtn" aria-label="Bevi un sorso (B)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4v3l2 2v13a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7l2-2z"/></svg><i class="drink-lvl" aria-hidden="true"></i></button><button type="button" data-k="phone" class="miniphone" aria-label="Apri il telefono (Tab)"><span class="mp-screen"><b class="mp-time">14:00</b></span><i class="mp-dot" aria-hidden="true"></i><span class="mp-wallet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#cairn"/></svg><b class="mp-ometti">0</b><span class="sr">ometti</span></span></button>`;
 root.appendChild(bar);
 export const tools = {
   onPhone: () => {},
   onFollow: (_kind: "missione" | "commissione") => {},
+  /** riprendere una missione iniziata e lasciata a metà */
+  onResume: (_id: string) => {},
   onCamera: () => {},
   onRun: () => {},
+  onDrink: () => {},
   onJump: () => {},
   onSound: () => {},
   onPause: () => {},
@@ -394,12 +423,21 @@ for (const b of [top, bar])
     if (k === "phone") tools.onPhone();
     if (k === "camera") tools.onCamera();
     if (k === "run") tools.onRun();
+    if (k === "drink") tools.onDrink();
     if (k === "jump") tools.onJump();
     if (k === "sound") tools.onSound();
     if (k === "pause") tools.onPause();
   });
 export function setSoundToggle(on: boolean) {
   top.querySelector(".soundbtn")!.setAttribute("aria-pressed", String(on));
+}
+/** la borraccia nel pulsante: quanta acqua resta (null = non c'è la borraccia) e se hai sete */
+export function setWater(level: number | null, thirsty: boolean) {
+  const b = bar.querySelector<HTMLButtonElement>(".drinkbtn")!;
+  b.hidden = level === null && !thirsty;
+  b.style.setProperty("--lvl", String(level ?? 0));
+  b.classList.toggle("thirsty", thirsty);
+  b.setAttribute("aria-label", level === null ? "Bevi (non hai la borraccia)" : `Bevi un sorso (B) · borraccia ${Math.round(level * 100)}%`);
 }
 export function setRunToggle(on: boolean) {
   bar.querySelector(".runbtn")!.setAttribute("aria-pressed", String(on));
@@ -420,6 +458,7 @@ export const CREDITS = `
   <p>Terreno: Copernicus GLO-30 Digital Elevation Model, © DLR e Airbus, programma Copernicus dell'Unione europea.</p>
   <p>Mappe (sentieri, rifugi, cime, laghi, ghiacciai, boschi, strade): © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">contributori OpenStreetMap</a>, dati disponibili con licenza ODbL.</p>
   <p>Caratteri: Bricolage Grotesque e Geist (SIL Open Font License). Grafica 3D: three.js (licenza MIT).</p>
+  <p>Suoni registrati, da Wikimedia Commons e Kenney: ${SOUND_CREDITS}.</p>
   <p>Ideato e realizzato da Vittoria Bassi.</p>`;
 export function openCredits() {
   panelOpen = busy = true;
@@ -452,17 +491,40 @@ export function openPause(o: PauseOpts) {
     <h3>Comandi</h3>
     <ul class="keys">
       <li><kbd>W A S D</kbd> o frecce: cammina</li><li><kbd>Shift</kbd>: corri</li><li><kbd>Spazio</kbd>: salta; in aria apre il parapendio</li>
-      <li><kbd>Q</kbd> <kbd>R</kbd>: gira la telecamera (o trascina col mouse)</li><li><kbd>E</kbd>: parla, osserva, raccogli</li>
+      <li><kbd>Q</kbd> <kbd>R</kbd>: gira la telecamera (o trascina col mouse)</li><li><kbd>E</kbd>: parla, osserva, raccogli</li><li><kbd>B</kbd>: bevi un sorso dalla borraccia</li>
       <li><kbd>Tab</kbd> telefono: missioni, mappa (<kbd>M</kbd>), diario (<kbd>J</kbd>), zaino (<kbd>Z</kbd>), spille, armadio (o <kbd>1</kbd>–<kbd>6</kbd>) · <kbd>P</kbd> foto</li><li><kbd>G</kbd> saluta · <kbd>T</kbd> messaggio · <kbd>Esc</kbd> pausa</li>
       <li>In parete: clic sulla presa (la gialla è il prossimo passo; o le direzioni) · <kbd>F</kbd> scuoti le braccia · <kbd>Spazio</kbd> «Calami!»</li>
     </ul>
     <h3>Altro</h3>
+    <div class="row"><button type="button" class="export">Esporta partita</button><button type="button" class="import">Importa partita</button><input type="file" accept="application/json,.json" class="import-file" hidden></div>
+    <p class="sub">La partita resta in questo browser. Esportala in un file per tenerla al sicuro o continuarla su un altro computer.</p>
     <div class="row"><button type="button" class="credits">Avvertenze e crediti</button><button type="button" class="reset">Ricomincia da capo</button></div>
   </div>`;
   const close = () => closePanel();
   panel.querySelector(".x")!.addEventListener("click", close);
   panel.querySelector(".resume")!.addEventListener("click", close);
   panel.querySelector(".credits")!.addEventListener("click", openCredits);
+  panel.querySelector(".export")!.addEventListener("click", () => {
+    const blob = new Blob([exportSave()], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `montagna-viva-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("<b>Partita esportata</b> Trovi il file nella cartella dei download.");
+  });
+  const file = panel.querySelector<HTMLInputElement>(".import-file")!;
+  panel.querySelector(".import")!.addEventListener("click", () => file.click());
+  file.addEventListener("change", async () => {
+    const f = file.files?.[0];
+    if (!f) return;
+    closePanel();
+    const i = await say("Importa partita", "La partita di questo browser sarà sostituita da quella del file. Continuo?", ["No, lascia stare", "Sì, importa"]);
+    if (i !== 1) return;
+    const err = importSave(await f.text());
+    if (err) toast(`<b>Non importata</b> ${esc(err)}`, "warn");
+    else location.reload();
+  });
   panel.querySelector(".reset")!.addEventListener("click", async () => {
     closePanel();
     const i = await say("Ricomincia da capo", "Vuoi cancellare diario, zaino, timbri, libri di vetta, foto e record? Non si può annullare.", ["No, tieni tutto", "Sì, ricomincia"]);
@@ -483,14 +545,13 @@ export function openPause(o: PauseOpts) {
 }
 export const closeAnyPanel = () => panelOpen && closePanel();
 
-// il focus resta dentro dialoghi e pannelli (Tab e Maiusc+Tab girano tra i loro pulsanti)
-addEventListener("keydown", (e) => {
-  if (e.key !== "Tab") return;
-  const box = panelOpen ? panel : pending ? dlg : null;
-  if (!box) return;
+// il focus resta dentro dialoghi, pannelli e rifugio (Tab e Maiusc+Tab girano tra i loro pulsanti)
+function trapFocus(box: HTMLElement, e: KeyboardEvent) {
   const f = Array.from(box.querySelectorAll<HTMLElement>("button, input, select, a[href]")).filter((x) => !x.hasAttribute("disabled"));
+  e.preventDefault();
   if (!f.length) return;
   const i = f.indexOf(document.activeElement as HTMLElement);
-  e.preventDefault();
   f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
-});
+}
+// dentro il rifugio: i pulsanti dell'interno (niente salti, niente pausa sotto)
+addLayer({ name: "rifugio", priority: 60, modal: true, active: () => insideOpen, key: (k, e) => void (k === "tab" && trapFocus(inside, e)) });

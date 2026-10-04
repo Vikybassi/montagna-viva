@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { Box, Circle } from "./collide";
 
 /**
  * Il mondo: la Val Masino vera (terreno Copernicus a 40 m) in scala ridotta, con boschi, ghiacciai, laghi, torrenti,
@@ -237,6 +238,66 @@ export function buildTerrainMesh(t: Terrain, cover: Cover) {
 
 export const GLACIER_COLOR = C.glacier;
 
+/**
+ * Oltre il bordo della mappa: le montagne continuano (inventate, sfumate nella foschia), così ai confini non si vede il
+ * vuoto ma altre creste, come in Valtellina. Quattro fasce intorno al rettangolo: all'attacco hanno la quota vera del
+ * bordo, poi salgono verso creste di 2000–3200 m.
+ */
+export function buildSkirt(t: Terrain) {
+  const W = t.width, D = t.depth, step = t.cell * 2;
+  const outs = [0, 25, 60, 110, 180, 270, 390, 540, 730, 970, 1270, 1650, 2100, 2700, 3400];
+  const P: number[] = [], Cl: number[] = [], I: number[] = [];
+  const tmp = new THREE.Color();
+  // creste inventate: onde lunghe che si incrociano, sempre uguali (niente caso)
+  const ridge = (x: number, z: number) => {
+    const a = Math.sin(x * 0.0021 + Math.sin(z * 0.0013) * 2) * Math.cos(z * 0.0017 - Math.sin(x * 0.0009) * 1.6);
+    const b = Math.sin(x * 0.0063 + z * 0.0041) * 0.35;
+    return 2350 + (a + b) * 700; // metri
+  };
+  const strip = (edge: (u: number) => [number, number], out: [number, number], len: number) => {
+    const n = Math.ceil(len / step) + Math.ceil(2 * outs[outs.length - 1] / step);
+    const u0 = -outs[outs.length - 1];
+    const base = P.length / 3;
+    for (let i = 0; i <= n; i++) {
+      const u = u0 + i * step;
+      const [ex, ez] = edge(Math.max(0, Math.min(len, u)));
+      const sx = edge(u)[0] - ex, sz = edge(u)[1] - ez; // oltre gli angoli si prosegue di lato
+      const h0 = t.heightAt(ex, ez) / S;
+      for (const d of outs) {
+        const x = ex + sx + out[0] * d, z = ez + sz + out[1] * d;
+        const k = THREE.MathUtils.smoothstep(d, 60, 1600);
+        const m = h0 * (1 - k) + ridge(x, z) * k;
+        P.push(x, m * S, z);
+        tmp.copy(C.meadow).lerp(C.meadowHigh, THREE.MathUtils.smoothstep(m, 1500, 2200));
+        tmp.lerp(C.rockDark, THREE.MathUtils.smoothstep(m, 2100, 2500)).lerp(C.rock, THREE.MathUtils.smoothstep(m, 2500, 2800));
+        tmp.lerp(C.snow, THREE.MathUtils.smoothstep(m, 2900, 3150));
+        Cl.push(tmp.r, tmp.g, tmp.b);
+      }
+    }
+    const R = outs.length;
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j < R - 1; j++) {
+        const a = base + i * R + j, b = base + (i + 1) * R + j;
+        I.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+  };
+  strip((u) => [u, 0], [0, -1], W); // nord
+  strip((u) => [u, D], [0, 1], W); // sud
+  strip((u) => [0, u], [-1, 0], D); // ovest
+  strip((u) => [W, u], [1, 0], D); // est
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(Cl, 3));
+  g.setIndex(I);
+  g.computeVertexNormals();
+  const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0, side: THREE.DoubleSide }));
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/** quanto sei lontana dal bordo della mappa (unità di gioco) */
+export const edgeDistance = (t: Terrain, x: number, z: number) => Math.min(x, z, t.width - x, t.depth - z);
+
 /** Nastro che segue il terreno lungo una linea (sentieri, torrenti). */
 function ribbon(t: Terrain, lines: Pt[][], width: number, lift: number, color: THREE.Color, every = 4) {
   const P: number[] = [], I: number[] = [];
@@ -378,18 +439,24 @@ export function buildTrees(t: Terrain, cover: Cover, rng: () => number, skip?: (
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
+    return mesh;
   };
   // conifera: tronco + due coni
-  mk(trunk, "#5b4636", conifers, (s, o) => (o.position.set(s.x, s.y - 0.2, s.z), o.rotation.set(0, 0, 0), o.scale.set(s.s * 1.6, s.s * 3, s.s * 1.6)));
+  const conTrunks = mk(trunk, "#5b4636", conifers, (s, o) => (o.position.set(s.x, s.y - 0.2, s.z), o.rotation.set(0, 0, 0), o.scale.set(s.s * 1.6, s.s * 3, s.s * 1.6)));
   // abeti scuri e freschi, e qualche larice (che a settembre comincia a dorarsi)
   const CON = ["#2f5f40", "#356a46", "#3f7046", "#2c5a3e", "#3a6a42", "#4f7a3c", "#336344", "#3c6c40", "#2e5c42", "#b9a03e"];
   const CON_TOP = ["#3a6c4a", "#427650", "#4b7d4e", "#365f46", "#46774c", "#5d8a45", "#3f704c", "#4a7a48", "#386848", "#d3b54a"];
   mk(conifer, "#2f5a3a", conifers, (s, o) => (o.position.set(s.x, s.y + s.s * 1.6, s.z), o.rotation.set(0, s.x, 0), o.scale.set(s.s * 2.6, s.s * 5.2, s.s * 2.6)), CON);
   mk(conifer, "#3a6a42", conifers, (s, o) => (o.position.set(s.x, s.y + s.s * 4.4, s.z), o.rotation.set(0, s.z, 0), o.scale.set(s.s * 1.8, s.s * 3.6, s.s * 1.8)), CON_TOP);
   // latifoglia: tronco + chioma tonda
-  mk(trunk, "#6a5240", broad, (s, o) => (o.position.set(s.x, s.y - 0.2, s.z), o.rotation.set(0, 0, 0), o.scale.set(s.s * 1.8, s.s * 3.4, s.s * 1.8)));
+  const broadTrunks = mk(trunk, "#6a5240", broad, (s, o) => (o.position.set(s.x, s.y - 0.2, s.z), o.rotation.set(0, 0, 0), o.scale.set(s.s * 1.8, s.s * 3.4, s.s * 1.8)));
   mk(crown, "#5f8a3e", broad, (s, o) => (o.position.set(s.x, s.y + s.s * 4.2, s.z), o.rotation.set(s.x, s.z, 0), o.scale.set(s.s * 2.8, s.s * 2.4, s.s * 2.8)), ["#6a9a44", "#7aa84c", "#86b152", "#5c8c40", "#93b85a", "#71a14a", "#80ab50", "#62933f", "#8bb556", "#76a54a", "#d9ad3c", "#e08a45"]);
-  return { group, count: spots.length };
+  // i tronchi sono solidi, ma solo quelli disegnati (con la qualità bassa il bosco si dirada: count diminuisce)
+  const solids: Circle[] = [
+    ...conifers.map((s, i) => ({ kind: "circle" as const, x: s.x, z: s.z, r: 0.29 * s.s, y0: s.y - 0.5, y1: s.y + s.s * 3, live: () => i < conTrunks.count })),
+    ...broad.map((s, i) => ({ kind: "circle" as const, x: s.x, z: s.z, r: 0.33 * s.s, y0: s.y - 0.5, y1: s.y + s.s * 3.4, live: () => i < broadTrunks.count })),
+  ];
+  return { group, count: spots.length, solids };
 }
 
 /** Rifugi, bivacchi e paesi: piccoli modelli fatti di forme semplici. */
@@ -425,6 +492,7 @@ export function buildPlaces(t: Terrain, data: WorldData, rng: () => number) {
   const wood = new THREE.MeshStandardMaterial({ color: "#8a6446", flatShading: true });
   const red = new THREE.MeshStandardMaterial({ color: "#c2375a", flatShading: true, roughness: 0.5, metalness: 0.3 });
   const box = new THREE.BoxGeometry(1, 1, 1);
+  const solids: Box[] = [];
   // tetto a due falde: un triangolo estruso, largo 1, alto 1, profondo 1, con la base a y = 0
   const tri = new THREE.Shape([new THREE.Vector2(-0.5, 0), new THREE.Vector2(0.5, 0), new THREE.Vector2(0, 1)]);
   const roof = new THREE.ExtrudeGeometry(tri, { depth: 1, bevelEnabled: false });
@@ -443,6 +511,8 @@ export function buildPlaces(t: Terrain, data: WorldData, rng: () => number) {
     g.rotation.y = rot;
     g.traverse((o) => ((o as THREE.Mesh).castShadow = (o as THREE.Mesh).receiveShadow = true));
     group.add(g);
+    // il tetto sporge un po': la scatola solida è la casa con il tetto (per la telecamera), i muri per chi cammina
+    solids.push({ kind: "box", x, z, hw: w / 2, hd: d / 2, rot, y0: y - 2, y1: y + hgt * 1.6 });
     return g;
   };
   /** registra la porta: dove stare per entrare (fuori) e dove si "sparisce" (dentro), in coordinate del mondo */
@@ -473,6 +543,7 @@ export function buildPlaces(t: Terrain, data: WorldData, rng: () => number) {
       const at = new THREE.Vector3(2.02, 0, 0), out = new THREE.Vector3(1, 0, 0);
       register(p.name, g, addDoor(g, at, out, 0.8, 1.3), at, out);
       group.add(g);
+      solids.push({ kind: "box", x, z, hw: 2, hd: 1.6, rot, y0: g.position.y - 1, y1: g.position.y + 1.6 });
     } else if (p.kind === "paese") {
       // un paese: case sparse attorno alla chiesa, mai una sopra l'altra
       const n = 6 + Math.floor(rng() * 4);
@@ -494,10 +565,11 @@ export function buildPlaces(t: Terrain, data: WorldData, rng: () => number) {
       cap.position.set(x, t.heightAt(x, z) + 12.75, z);
       cap.rotation.y = Math.PI / 4;
       group.add(bell, cap);
+      solids.push({ kind: "box", x, z, hw: 1.1, hd: 1.1, rot: 0, y0: t.heightAt(x, z) - 2, y1: t.heightAt(x, z) + 14.5 });
     } else house(x, z, 4.5, 3.5, 2.6, rot, wood);
   }
   // il Sasso Remenno è in climb.ts (roccia chiusa, collisione e via d'arrampicata)
-  return { group, doors };
+  return { group, doors, solids };
 }
 
 export async function loadWorld() {

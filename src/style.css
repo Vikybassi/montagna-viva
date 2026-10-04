@@ -266,13 +266,18 @@ body:not(.playing) .netpill { display: none; }
 /* il telefonino in basso a destra: l'ora sullo schermo e un puntino rosso se c'è qualcosa di nuovo */
 .tools .miniphone { position: relative; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; cursor: pointer; backdrop-filter: none; }
 .tools .miniphone:hover { background: none; }
-.mp-screen { display: grid; place-items: center; width: 44px; height: 70px; border: 4px solid var(--ph-frame); border-radius: 12px; background: var(--ph-screen); box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5); transition: transform 0.2s; }
+.mp-screen { display: grid; place-items: center; width: 58px; height: 92px; border: 5px solid var(--ph-frame); border-radius: 15px; background: var(--ph-screen); box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5); transition: transform 0.2s; }
 .miniphone:hover .mp-screen { transform: translateY(-4px) rotate(-4deg); }
-.mp-time { font: 700 11px var(--mono); color: var(--ph-ink); }
-.mp-dot { position: absolute; top: -4px; right: -4px; width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; background: #e2453c; transform: scale(0); transition: transform 0.25s; }
+.mp-time { font: 700 14px var(--mono); color: var(--ph-ink); }
+.mp-dot { position: absolute; top: -5px; right: -5px; width: 17px; height: 17px; border: 2px solid #fff; border-radius: 50%; background: #e2453c; transform: scale(0); transition: transform 0.25s; }
 .miniphone.new .mp-dot { transform: scale(1); }
 .mp-wallet { display: flex; align-items: center; gap: 3px; padding: 2px 8px 2px 4px; border-radius: 999px; background: rgba(35, 26, 43, 0.72); color: #fff; font: 700 12px var(--mono); }
 .mp-wallet svg { width: 18px; height: 18px; }
+/* sugli schermi piccoli un po' meno grande: lascia spazio al gioco */
+@media (max-width: 600px) {
+  .mp-screen { width: 48px; height: 76px; border-width: 4px; border-radius: 13px; }
+  .mp-time { font-size: 12px; }
+}
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 .phone-wrap { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(35, 26, 43, 0.35); opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; z-index: 5; }
@@ -286,7 +291,7 @@ body:not(.playing) .netpill { display: none; }
 .phone { position: relative; width: min(360px, calc(100vw - 24px)); height: min(640px, calc(100vh - 96px)); padding: 9px; border-radius: 44px; background: var(--ph-frame); box-shadow: 0 30px 60px -20px rgba(20, 10, 25, 0.6), inset 0 -6px 0 rgba(0, 0, 0, 0.12); transition: width 0.4s, height 0.4s; }
 .phone.wide { width: min(940px, calc(100vw - 120px)); height: min(600px, calc(100vh - 96px)); }
 .phone-wrap:has(.phone.wide) .fingers { top: 18%; }
-.phone-screen { display: flex; flex-direction: column; height: 100%; border-radius: 36px; background: var(--ph-screen); color: var(--ph-ink); overflow: hidden; }
+.phone-screen { position: relative; display: flex; flex-direction: column; height: 100%; border-radius: 36px; background: var(--ph-screen); color: var(--ph-ink); overflow: hidden; }
 .ph-status { display: flex; align-items: center; gap: 8px; padding: 12px 22px 6px; font: 600 11px var(--mono); color: var(--ph-ink); white-space: nowrap; }
 .ph-time { font-size: 13px; font-weight: 700; }
 .ph-where { overflow: hidden; text-overflow: ellipsis; color: var(--ph-soft); }
@@ -298,8 +303,9 @@ body:not(.playing) .netpill { display: none; }
 .ph-batt.low i { background: #e2453c; }
 .phone:not(.wide) .ph-sun { display: none; }
 .ph-head { display: flex; align-items: center; gap: 8px; padding: 4px 12px 8px; }
-.ph-tabs { flex: 1; display: flex; justify-content: space-between; gap: 2px; padding: 5px; border-radius: 999px; background: #fff; box-shadow: 0 2px 0 rgba(18, 66, 58, 0.08); }
-.ph-tabs button { position: relative; flex: 1; display: grid; justify-items: center; gap: 1px; min-width: 0; padding: 5px 2px 4px; border: 0; border-radius: 999px; background: none; color: var(--ph-soft); font: 600 10px var(--display); cursor: pointer; }
+.ph-tabs { flex: 1; display: flex; justify-content: space-between; gap: 0; padding: 4px 3px; border-radius: 999px; background: #fff; box-shadow: 0 2px 0 rgba(18, 66, 58, 0.08); }
+.ph-tabs button { position: relative; flex: 1; display: grid; justify-items: center; gap: 1px; min-width: 0; padding: 5px 1px 4px; border: 0; border-radius: 999px; background: none; color: var(--ph-soft); font: 600 9px var(--display); letter-spacing: -0.02em; cursor: pointer; }
+.ph-tabs button span { max-width: 100%; overflow: hidden; text-overflow: clip; white-space: nowrap; }
 .ph-tabs button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ph-tabs button[aria-pressed="true"] { background: var(--ph-mint); color: var(--ph-ink); }
 .ph-tabs button:hover { color: var(--ph-ink); }
@@ -347,8 +353,19 @@ body:not(.playing) .netpill { display: none; }
 .ph-tiles b { display: block; font-size: 24px; font-weight: 800; }
 .ph-tiles span { font: 500 11px var(--mono); color: var(--ph-soft); }
 .ph-tiles p { margin: 4px 0 0; font-size: 12px; color: var(--ph-soft); }
-.ph-album { grid-template-columns: 1fr 1fr; }
-.ph-album img { display: block; width: 100%; border-radius: 12px; }
+.ph-album { grid-template-columns: 1fr 1fr; margin-bottom: 14px; }
+.ph-album li { display: grid; gap: 3px; }
+.ph-album span { font: 500 10px var(--mono); color: var(--ph-soft); padding: 0 4px; }
+.ph-album img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; }
+.ph-photo { display: block; width: 100%; padding: 0; border: 0; border-radius: 12px; background: none; cursor: zoom-in; }
+.ph-photo:focus-visible { outline: 3px solid var(--ph-ink); outline-offset: 2px; }
+.ph-empty { margin: 0 0 14px; padding: 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.6); font-size: 13px; line-height: 1.45; color: var(--ph-ink); }
+/* la foto ingrandita, dentro lo schermo del telefono */
+.ph-zoom { position: absolute; inset: 0; z-index: 3; display: none; place-content: center; gap: 10px; padding: 16px; border: 0; border-radius: inherit; background: rgba(18, 30, 28, 0.92); color: #fff; cursor: zoom-out; }
+.ph-zoom.on { display: grid; }
+.ph-zoom:focus { outline: none; }
+.ph-zoom img { max-width: 100%; max-height: 70vh; border-radius: 14px; box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7); }
+.ph-zoom span { font: 600 12px var(--mono); text-align: center; }
 .ph-album span { font: 500 10px var(--mono); color: var(--ph-soft); }
 .ph-body.mappa { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 14px; }
 .ph-body.mappa h2 { display: none; }
@@ -433,6 +450,14 @@ body:not(.playing) .netpill { display: none; }
 /* ---------- fotocamera: mirino, pulsante, taccuino ---------- */
 .tools .camerabtn { display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border-radius: 50%; }
 .camerabtn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+/* la borraccia: l'acqua che resta sale e scende dentro il pulsante; con la sete pulsa piano */
+.tools .drinkbtn { position: relative; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border-radius: 50%; overflow: hidden; }
+.tools .drinkbtn[hidden] { display: none; }
+.drinkbtn svg { position: relative; z-index: 1; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.drink-lvl { position: absolute; inset: auto 0 0 0; height: calc(var(--lvl, 1) * 100%); background: rgba(90, 166, 191, 0.35); transition: height 0.4s; }
+.drinkbtn.thirsty { animation: thirst 1.6s ease-in-out infinite; }
+@keyframes thirst { 50% { box-shadow: 0 0 0 6px rgba(90, 166, 191, 0.45); } }
+@media (prefers-reduced-motion: reduce) { .drinkbtn.thirsty { animation: none; outline: 3px solid #5aa6bf; } }
 .finder { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.25s; }
 .finder.on { opacity: 1; }
 .finder .fc { position: absolute; width: 48px; height: 48px; border: 4px solid #fff; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }

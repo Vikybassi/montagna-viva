@@ -31,3 +31,7 @@ derived from third-party sources and keeps their licenses:
 - Paths, huts, peaks, lakes, glaciers and forests: © OpenStreetMap contributors,
   available under the Open Database License (ODbL) 1.0.
 - Fonts: Bricolage Grotesque and Geist Mono, SIL Open Font License 1.1.
+
+Sounds in public/audio come from Wikimedia Commons and Kenney under their own licenses (CC0, public
+domain, CC BY 3.0, CC BY-SA 4.0); authors and licenses are listed in public/audio/CREDITI.md. Files under
+CC BY-SA keep that license.

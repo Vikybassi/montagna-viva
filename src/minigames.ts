@@ -3,6 +3,7 @@
  * più sei precisa più rimbalzi. (La scalata del Sasso Remenno è una vera arrampicata in parete: climb.ts.)
  */
 import { sound } from "./audio";
+import { pushModal } from "./input";
 
 const host = document.createElement("div");
 host.className = "mini";
@@ -28,7 +29,7 @@ export function skipStone(): Promise<number> {
   return new Promise((res) => {
     const done = () => {
       cancelAnimationFrame(raf);
-      removeEventListener("keydown", key);
+      off();
       // il punto giusto è tra 0,72 e 0,86: forte ma non troppo
       const acc = Math.max(0, 1 - Math.abs(v - 0.79) / 0.45);
       const skips = Math.max(0, Math.min(12, Math.round(acc ** 1.6 * 11 + (Math.random() - 0.5) * 1.5)));
@@ -36,13 +37,14 @@ export function skipStone(): Promise<number> {
       playing = false;
       res(skips);
     };
-    const key = (e: KeyboardEvent) => {
-      if (e.key === " " || e.key.toLowerCase() === "e" || e.key === "Enter") {
+    // il minigioco si prende tutti i tasti finché dura (lo stesso E che l'ha aperto non lo chiude: niente ripetizioni)
+    const off = pushModal("rimbalzello", (k, e) => {
+      if (e.repeat) return;
+      if (k === " " || k === "e" || k === "enter") {
         e.preventDefault();
         done();
       }
-    };
-    setTimeout(() => addEventListener("keydown", key), 150);
+    });
     host.querySelector(".mini-btn")!.addEventListener("click", done);
   });
 }
@@ -237,28 +239,20 @@ export function stackCairn(): Promise<boolean> {
   if (location.search.includes("debug")) Object.assign(window, { __cairn: { x: () => cur.x, top: () => top().x, busy: () => !!falling } });
   let finish: (ok: boolean) => void = () => {};
   return new Promise((res) => {
-    const key = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      // fermati qui: lo stesso tasto non deve far saltare, aprire la pausa o ripartire con un altro ometto
-      if (k === " " || k === "e" || k === "enter") {
-        e.preventDefault();
-        e.stopPropagation();
-        drop();
-      } else if (k === "escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        finish(false);
-      }
-    };
+    let off = () => {};
     finish = (ok) => {
       cancelAnimationFrame(raf);
-      removeEventListener("keydown", key, true);
+      off();
       host.classList.remove("on");
       playing = false;
       res(ok);
     };
-    // in fase di cattura: Spazio ed Esc qui non devono anche far saltare o aprire la pausa
-    setTimeout(() => addEventListener("keydown", key, true), 150);
+    // un livello sopra tutti: Spazio ed Esc qui non fanno anche saltare, aprire la pausa o ripartire con un altro ometto
+    off = pushModal("ometto", (k, e) => {
+      if (e.repeat) return;
+      if (k === " " || k === "e" || k === "enter") e.preventDefault(), drop();
+      else if (k === "escape") e.preventDefault(), finish(false);
+    });
     cv.addEventListener("pointerdown", drop);
     host.querySelector(".mini-btn")!.addEventListener("click", drop);
     host.querySelector(".mini-quit")!.addEventListener("click", () => finish(false));
