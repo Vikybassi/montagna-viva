@@ -2,7 +2,7 @@
 
 Le versioni seguono le tappe della [roadmap](ROADMAP.md).
 
-## 0.2.0 · M1, architettura e logiche (in arrivo)
+## 0.2.0 · M1, architettura e logiche (4 ottobre 2026)
 
 Dentro il gioco cambia poco a vista, ma tutto è più solido: regole chiare per cosa seguire, tasti che fanno una cosa
 sola, muri veri, orologio che può saltare senza rompere niente.
@@ -36,7 +36,7 @@ sola, muri veri, orologio che può saltare senza rompere niente.
   camminando, di più correndo e in salita; con tanta sete il fiato dura meno e un avviso invita a bere. Fontane nei
   paesi e acqua ai rifugi; vicino a un torrente si impara che l'acqua limpida non è per forza potabile. Due voci nuove
   nel diario.
-- 11 prove nel browser.
+- 57 prove veloci e 11 nel browser, che girano anche su GitHub; i casi limite sono in [tests/CASI.md](tests/CASI.md).
 
 **Dentro**
 
