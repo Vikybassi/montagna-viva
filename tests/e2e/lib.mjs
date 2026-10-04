@@ -22,8 +22,6 @@ export async function launch() {
 export async function openGame(browser, { save = { packed: true, pack: ["frontale", "giacca"], missions: { zaino: "done" } }, t = 11 } = {}) {
   const page = await browser.newPage();
   const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  page.on("console", (m) => m.type() === "error" && !m.text().includes("WebSocket") && errors.push(m.text()));
   await page.setViewport({ width: 1280, height: 720 });
   // la partita si prepara da una pagina dello stesso sito che NON avvia il gioco: se si aprisse il gioco e poi si
   // ricaricasse, su un computer lento il primo avvio finirebbe dopo e salverebbe la sua partita vuota sopra questa
@@ -35,6 +33,9 @@ export async function openGame(browser, { save = { packed: true, pack: ["frontal
     // partono prima che il gioco la misuri
     if (ci) localStorage.setItem("montagna-viva:settings", JSON.stringify({ quality: "bassa" }));
   }, save, !!process.env.CI);
+  // da qui contano gli errori (la pagina di preparazione non è il gioco: per esempio le manca l'icona)
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => m.type() === "error" && !m.text().includes("WebSocket") && !(m.location()?.url ?? "").includes("favicon") && errors.push(`${m.text()} ${m.location()?.url ?? ""}`));
   await page.goto(`${BASE}?debug&t=${t}`, { waitUntil: "load" });
   await page.waitForFunction(() => !document.querySelector("#start").disabled, { timeout: 180000 });
   await page.evaluate(() => document.querySelector("#start").click());
