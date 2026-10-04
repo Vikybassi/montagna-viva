@@ -13,7 +13,7 @@ import type { Valley } from "./valley";
  * si impara che l'acqua limpida non è per forza buona da bere.
  */
 export function setupWater(w: World, v: Valley) {
-  const { c, scene, T, data, hiker } = w;
+  const { scene, T, data, hiker } = w;
   const th = new Thirst(state.water, state.thirst);
 
   // le fontane: una in ogni paese, accanto alla chiesa (vasca di pietra, cannella, acqua che scorre)
@@ -59,16 +59,19 @@ export function setupWater(w: World, v: Valley) {
   const drinkable = () => th.dry > 0.1 || (has("acqua") && th.water < 0.99);
   const interacts: Interact[] = [
     ...fountains.map((p) => ({ pos: p, r: 3.5, text: () => (drinkable() ? "Bevi alla fontana" : null), act: () => atFountain("alla fontana") })),
-    // ai rifugi si chiede acqua (le porte servono anche al temporale: col maltempo si entra, non si chiede da bere)
-    ...data.huts.filter((h) => h.kind === "rifugio").flatMap((h) => {
-      const d = c.doors.get(h.name);
-      return d ? [{ pos: d.front, r: 4, text: () => (w.weather.phase === "clear" && drinkable() ? "Chiedi acqua al rifugio" : null), act: () => atFountain("del rifugio") }] : [];
-    }),
   ];
 
   let warned = false, nag = 0, prevY = hiker.root.position.y;
   return {
     interacts,
+    /** dentro il rifugio: si beve e si riempie la borraccia (senza animazione: sei dentro) */
+    refill() {
+      th.fountain(has("acqua"));
+      sound.gulp();
+      keep();
+      ui.learned(learn("acqua"));
+      return has("acqua") ? "Il custode ti riempie la borraccia d'acqua fresca. Bevi un bel sorso anche tu." : "Il custode ti offre un bicchiere d'acqua fresca. La prossima volta porta una borraccia!";
+    },
     get thirsty() {
       return th.thirsty;
     },

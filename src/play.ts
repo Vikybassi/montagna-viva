@@ -36,6 +36,15 @@ export function setupPlay(c: PlayCtx) {
   const missions = setupMissions(w, people, valley);
   const storm = setupStorm(w, routes, valley, () => !!climbing.active() || racing());
   const water = setupWater(w, valley);
+  // dentro rifugi e bivacchi, col bel tempo: riposarsi mezz'ora (torna il fiato) e, al rifugio, bere
+  storm.setExtraButtons((_p, kind) => [
+    ...(kind === "rifugio" ? [{ label: "Bevi e riempi la borraccia", fn: () => water.refill() }] : []),
+    ...(c.sharedTime() ? [] : [{ label: "Riposa mezz'ora", fn: () => {
+      c.setHours(c.getHours() + 0.5);
+      stamina = 1;
+      return kind === "rifugio" ? "Mezz'ora seduta sulla panca, con le gambe allungate: il fiato è tornato." : "Mezz'ora sulla branda del bivacco, in silenzio: il fiato è tornato.";
+    } }]),
+  ]);
 
   // il motore delle missioni: il temporale prima di tutto, poi commissione o missione (quella che segui)
   const engine = new QuestEngine();
