@@ -205,7 +205,8 @@ export function setupStorm(w: World, routes: Routes, v: Valley, busy: () => bool
         stormShelter = null;
         ui.endCall();
       }
-      if (callPending && !calledToday && !ui.busy && !busy()) martaCalls();
+      // (la telefonata aspetta che il tutorial sia finito: chi ha appena iniziato non la riceve mentre impara a camminare)
+      if (callPending && !calledToday && !ui.busy && !busy() && state.tutorial >= 6) martaCalls();
     },
   };
 }

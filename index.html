@@ -19,14 +19,15 @@
     <div id="stick" aria-hidden="true"><div id="knob"></div></div>
 
     <section id="intro">
-      <div class="card">
-        <p class="kicker">Val Masino · prototipo</p>
+      <div class="hero">
+        <p class="kicker">Val Masino · Valtellina</p>
         <h1>Montagna viva</h1>
-        <p class="lead">Un gioco tranquillo nella valle vera: terreno, sentieri, rifugi e ghiacciai sono quelli reali. Sei a San Martino, sono le 14 di un giorno di metà settembre e il sole tramonta verso le 19:30.</p>
-        <p class="lead small">Marta, la guida, ti aspetta in paese con lo zaino e le missioni. Lungo la strada: timbri dei rifugi, libri di vetta, animali, rimbalzello, il Sasso Remenno… e da un punto alto puoi lanciarti in parapendio. Col suono acceso è più bello.</p>
-        <div class="who-am-i">
-          <p class="who-k">Il tuo nome nella valle</p>
-          <p class="who-name"><b id="pname">Marmotta curiosa</b> <button type="button" id="pname-new">Cambia</button></p>
+        <p class="tagline">Una giornata di fine estate nella valle vera. Sali, osserva, torna prima del buio.</p>
+        <button id="start" type="button" disabled>Preparo lo zaino…</button>
+        <p id="loading">Carico la valle…</p>
+        <details class="who-am-i">
+          <summary>Il tuo nome nella valle: <b id="pname">Marmotta curiosa</b></summary>
+          <p class="who-name"><button type="button" id="pname-new">Estrai un altro nome</button></p>
           <div class="swatches" role="radiogroup" aria-label="Colore della giacca">
             <button type="button" role="radio" data-c="#c2375a" style="--c:#c2375a" aria-label="Bordeaux"></button>
             <button type="button" role="radio" data-c="#2f8f8a" style="--c:#2f8f8a" aria-label="Verde acqua"></button>
@@ -35,12 +36,9 @@
             <button type="button" role="radio" data-c="#f2b632" style="--c:#f2b632" aria-label="Giallo"></button>
           </div>
           <p class="note-mp">Chi gioca insieme a te vede il tuo nome e la tua giacca. Nient'altro.</p>
-        </div>
-        <button id="start" type="button" disabled>Preparo lo zaino…</button>
-        <p id="loading">Carico la valle…</p>
-        <p class="disclaimer">È un gioco, non uno strumento per escursioni vere: tempi, strade e meteo sono semplificati. <button type="button" id="credits-open">Avvertenze e crediti</button></p>
-        <p class="credits">Terreno Copernicus GLO-30 © DLR e Airbus · mappe © contributori OpenStreetMap (ODbL)</p>
+        </details>
       </div>
+      <p class="foot">È un gioco, non uno strumento per escursioni vere: tempi, strade e meteo sono semplificati. <button type="button" id="credits-open">Avvertenze e crediti</button> · Terreno Copernicus GLO-30 © DLR e Airbus · mappe © contributori OpenStreetMap (ODbL)</p>
     </section>
     <script type="module" src="/src/main.ts"></script>
   </body>

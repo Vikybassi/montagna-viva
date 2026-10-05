@@ -16,6 +16,7 @@ import { setupRoutes } from "./game/routes";
 import { createWeather, setupStorm } from "./game/storm";
 import { setupBus } from "./game/bus";
 import { setupPanorama } from "./game/panorama";
+import { setupTutorial } from "./game/tutorial";
 import { setupWater } from "./game/water";
 import { setupValley } from "./game/valley";
 
@@ -40,6 +41,7 @@ export function setupPlay(c: PlayCtx) {
   const water = setupWater(w, valley);
   const panorama = setupPanorama(w);
   const bus = setupBus(w, valley, routes);
+  const tutorial = setupTutorial(w, c.getYaw, people.marta.root.position);
   routes.map.stops = bus.stops;
   // dentro rifugi e bivacchi, col bel tempo: riposarsi mezz'ora (torna il fiato) e, al rifugio, bere
   storm.setExtraButtons((_p, kind) => [
@@ -199,6 +201,7 @@ export function setupPlay(c: PlayCtx) {
     },
     update(dt: number) {
       phone.update(dt);
+      tutorial.update(dt);
       storm.update(dt);
       valley.update(dt);
       climbing.update(dt);

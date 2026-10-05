@@ -2,6 +2,16 @@
 
 Le versioni seguono le tappe della [roadmap](ROADMAP.md).
 
+## 0.4.0 · I primi cinque minuti (M3, prima parte)
+
+- **Schermata iniziale nuova**: il titolo grande sopra il paese che la telecamera sorvola piano, un solo pulsante
+  «Inizia a camminare»; nome e giacca in un menu a scomparsa; avvertenze e crediti in fondo.
+- **Tutorial dentro il gioco**: sei passi uno alla volta (camminare, guardarsi intorno, saltare, andare da Marta,
+  parlarle, aprire il telefono), ognuno si completa facendolo; 5 ometti alla fine; si può saltare. Con il tocco i testi
+  parlano di dita e pulsanti. Chi ha già una partita non lo rivede.
+- La telefonata di Marta per il temporale aspetta che il tutorial sia finito.
+- Prove: logica del tutorial (unit) e un giro completo nel browser.
+
 ## 0.3.0 · Aspetto, usabilità e più cose da fare (4 ottobre 2026)
 
 Dopo la M1 il gioco cambia faccia: più colorato e più curato (sulla scia di Coastal World), più facile da usare e con

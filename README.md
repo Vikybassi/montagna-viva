@@ -54,6 +54,13 @@ npm run test:e2e     # prove nel browser: avvio, telefono, foto, incontri, tempo
 Le prove nel browser usano Chrome (`CHROME_PATH` per indicarne un altro) e avviano da sole il gioco se non è già
 acceso. Su GitHub, a ogni push, girano la build, le prove veloci e la prova di avvio.
 
+## Sempre acceso su localhost
+
+Per giocare senza il server di sviluppo (e senza riavviarlo): `./scripts/giocabile.sh installa` costruisce il gioco, lo
+copia in `~/Library/Application Support/MontagnaViva/www` e crea un servizio del Mac che lo serve su
+<http://localhost:5200> (parte all'accesso, si riavvia da solo). Dopo nuove modifiche: `./scripts/giocabile.sh aggiorna`.
+Per toglierlo: `./scripts/giocabile.sh togli`. Il servizio serve una copia: cambiare branch nel progetto non lo tocca.
+
 ## Struttura
 
 | Cartella | Cosa c'è |
